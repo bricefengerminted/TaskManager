@@ -1,1 +1,213 @@
+# TaskManager — "Asana Light"
 
+A lightweight task management app built for product managers. Organize work by
+Projects (epics/product areas) with Tasks underneath, and quickly capture
+action items from Slack conversations.
+
+---
+
+## Features
+
+### Core (Phase 1)
+- **Project Management** — Create, list, edit, and archive projects
+- **Task Management** — Full CRUD for tasks within each project
+- **Kanban Board** — Drag-and-drop columns: Todo → In Progress → Done
+- **List View** — Sortable, filterable table view for tasks
+- **Slack Paste-to-Task** — Paste a Slack message to auto-create a task
+- **Dashboard** — Project health overview with task counts and overdue items
+- **Priority & Due Dates** — Four priority levels (low/medium/high/urgent) with due date tracking
+
+### Roadmap (Phase 2)
+- Tags / Labels on tasks
+- Search across all projects and tasks
+- Recurring tasks
+- Activity log / audit trail
+- Slack webhook integration (auto-create tasks from reactions)
+- Multi-user support with authentication
+- Export to CSV
+
+---
+
+## Tech Stack
+
+| Layer       | Choice                        | Rationale                                      |
+|-------------|-------------------------------|-------------------------------------------------|
+| Frontend    | React + TypeScript + Vite     | Fast dev cycle, strong typing, modern tooling   |
+| Styling     | Tailwind CSS                  | Rapid UI iteration without custom CSS overhead  |
+| State       | React Context + useReducer    | Sufficient for this scope, no extra deps        |
+| Backend     | Node.js + Express + TypeScript| Simple REST API, shares types with frontend     |
+| Database    | SQLite (via better-sqlite3)   | Zero-config, file-based, perfect for single-user|
+| ORM/Query   | Drizzle ORM                   | Lightweight, type-safe, great SQLite support    |
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Installation
+
+```bash
+# Clone the repo
+git clone <repo-url>
+cd TaskManager
+
+# Install backend dependencies
+cd backend
+npm install
+
+# Install frontend dependencies
+cd ../frontend
+npm install
+```
+
+### Running the App
+
+```bash
+# Start the backend (from /backend)
+npm run dev
+
+# Start the frontend (from /frontend, in a separate terminal)
+npm run dev
+```
+
+The frontend runs on `http://localhost:5173` and the API on `http://localhost:3001`.
+
+---
+
+## Data Model
+
+```
+Project
+├── id            (UUID)
+├── name          (string)        — e.g. "Search Redesign", "Payments V2"
+├── description   (text, optional)
+├── status        (active | archived)
+├── created_at    (timestamp)
+├── updated_at    (timestamp)
+│
+└── Tasks[]
+    ├── id            (UUID)
+    ├── project_id    (FK → Project)
+    ├── title         (string)
+    ├── description   (text, optional)
+    ├── status        (todo | in_progress | done)
+    ├── priority      (low | medium | high | urgent)
+    ├── due_date      (date, optional)
+    ├── source        (manual | slack)
+    ├── slack_raw     (text, optional)  — original Slack message text
+    ├── created_at    (timestamp)
+    └── updated_at    (timestamp)
+```
+
+---
+
+## API Reference
+
+### Projects
+
+| Method | Path                  | Description            |
+|--------|-----------------------|------------------------|
+| GET    | /api/projects         | List all projects      |
+| POST   | /api/projects         | Create a project       |
+| GET    | /api/projects/:id     | Get project detail     |
+| PUT    | /api/projects/:id     | Update a project       |
+| DELETE | /api/projects/:id     | Archive a project      |
+
+### Tasks
+
+| Method | Path                                     | Description        |
+|--------|------------------------------------------|--------------------|
+| GET    | /api/projects/:id/tasks                  | List tasks          |
+| POST   | /api/projects/:id/tasks                  | Create a task       |
+| GET    | /api/projects/:id/tasks/:taskId          | Get task detail     |
+| PUT    | /api/projects/:id/tasks/:taskId          | Update a task       |
+| DELETE | /api/projects/:id/tasks/:taskId          | Delete a task       |
+| PATCH  | /api/projects/:id/tasks/:taskId/status   | Quick status update |
+
+### Dashboard
+
+| Method | Path            | Description                         |
+|--------|-----------------|-------------------------------------|
+| GET    | /api/dashboard  | Aggregated stats across all projects|
+
+---
+
+## Slack Paste-to-Task
+
+Quickly turn Slack messages into tracked tasks without any API setup:
+
+1. **Copy** a message in Slack (Slack formats it as `[timestamp] Author: message`)
+2. **Click** "New Task from Slack" on any project
+3. **Paste** the Slack content into the modal
+4. The app **parses** the paste and pre-fills:
+   - Author → description ("Reported by: ...")
+   - Message body → task title + description
+   - Raw text → stored for reference
+5. **Edit** the pre-filled fields if needed, then save
+
+Tasks created this way are tagged with `source: slack` and retain the original
+Slack text in the `slack_raw` field.
+
+---
+
+## Project Structure
+
+```
+TaskManager/
+├── frontend/                  # React + Vite app
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── layout/        # Sidebar, Header, Layout shell
+│   │   │   ├── projects/      # ProjectList, ProjectCard, ProjectForm
+│   │   │   ├── tasks/         # TaskBoard, TaskList, TaskCard, TaskForm
+│   │   │   ├── dashboard/     # DashboardView, StatCards
+│   │   │   └── slack/         # SlackPasteModal, slack parser
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── context/           # App state (projects, tasks)
+│   │   ├── api/               # API client functions
+│   │   ├── types/             # Shared TypeScript types
+│   │   ├── utils/             # Helpers (date formatting, etc.)
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── index.html
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── package.json
+│
+├── backend/                   # Express + SQLite API
+│   ├── src/
+│   │   ├── db/
+│   │   │   ├── schema.ts      # Drizzle schema definitions
+│   │   │   ├── migrate.ts     # Migration runner
+│   │   │   └── index.ts       # DB connection
+│   │   ├── routes/
+│   │   │   ├── projects.ts    # /api/projects endpoints
+│   │   │   └── tasks.ts       # /api/projects/:id/tasks endpoints
+│   │   ├── middleware/         # Error handling, validation
+│   │   └── index.ts           # Express app entry point
+│   ├── tsconfig.json
+│   └── package.json
+│
+├── shared/                    # Shared types between FE & BE
+│   └── types.ts
+│
+├── PLAN.md                    # Detailed implementation plan
+└── readme                     # This file
+```
+
+---
+
+## Design Decisions
+
+- **SQLite over Postgres** — Zero infrastructure for a personal tool. The DB
+  is a single file. Swap to Postgres later via Drizzle if needed.
+- **No auth in Phase 1** — Single-user tool; auth would be unnecessary friction.
+- **Clipboard Slack integration over API** — No OAuth setup, no Slack app
+  registration. Covers the real workflow: "I saw something in Slack, I need
+  to track it."
+- **Kanban board as default view** — PMs spend most time moving tasks across
+  statuses. The board makes that tactile and visual.
