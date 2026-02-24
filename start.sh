@@ -87,17 +87,28 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-# ── Open in browser ──────────────────────────
+# ── Open as standalone app window ────────────
 URL="http://localhost:$FRONTEND_PORT"
 echo ""
 echo "TaskManager is running at $URL"
 echo "Press Ctrl+C to stop."
 echo ""
 
-# Open browser (macOS)
-if command -v open &>/dev/null; then
+# Try to open in a standalone app window (no browser chrome)
+if [ -d "/Applications/Google Chrome.app" ]; then
+  open -a "Google Chrome" --args --app="$URL"
+elif [ -d "/Applications/Google Chrome Canary.app" ]; then
+  open -a "Google Chrome Canary" --args --app="$URL"
+elif [ -d "/Applications/Chromium.app" ]; then
+  open -a "Chromium" --args --app="$URL"
+elif [ -d "/Applications/Microsoft Edge.app" ]; then
+  open -a "Microsoft Edge" --args --app="$URL"
+elif [ -d "/Applications/Brave Browser.app" ]; then
+  open -a "Brave Browser" --args --app="$URL"
+elif command -v open &>/dev/null; then
+  # Fallback: regular browser
+  echo "(Install Chrome or Edge for a native app window experience)"
   open "$URL"
-# Linux fallback
 elif command -v xdg-open &>/dev/null; then
   xdg-open "$URL"
 fi
