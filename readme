@@ -54,26 +54,25 @@ action items from Slack conversations.
 git clone <repo-url>
 cd TaskManager
 
-# Install backend dependencies
-cd backend
-npm install
+# Install all dependencies (from root)
+npm run install:all
 
-# Install frontend dependencies
-cd ../frontend
-npm install
+# Or individually:
+# cd backend && npm install
+# cd frontend && npm install --legacy-peer-deps
 ```
 
 ### Running the App
 
 ```bash
-# Start the backend (from /backend)
+# Terminal 1 — start the backend (from /backend)
 npm run dev
 
-# Start the frontend (from /frontend, in a separate terminal)
+# Terminal 2 — start the frontend (from /frontend)
 npm run dev
 ```
 
-The frontend runs on `http://localhost:5173` and the API on `http://localhost:3001`.
+The frontend runs on `http://localhost:5173` (proxies `/api` → backend on port 3001).
 
 ---
 

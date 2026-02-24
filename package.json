@@ -1,0 +1,10 @@
+{
+  "name": "taskmanager",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --legacy-peer-deps --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "typecheck": "npm run --prefix backend tsc -- --noEmit && npm run --prefix frontend tsc -- --noEmit"
+  }
+}
