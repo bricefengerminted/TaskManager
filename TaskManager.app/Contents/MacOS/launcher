@@ -33,8 +33,6 @@ tell application "Google Chrome"
         repeat with t from 1 to (count of tabs of window w)
             if URL of tab t of window w contains "$TARGET_URL" then
                 set active tab index of window w to t
-                set miniaturized of window w to false
-                set visible of window w to true
                 set index of window w to 1
                 delay 0.5
                 activate
