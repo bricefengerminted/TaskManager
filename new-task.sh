@@ -2,7 +2,8 @@
 # ──────────────────────────────────────────────
 # new-task.sh — Open TaskManager and start the New Task flow
 #
-# If servers are running: brings window to front with ?action=new-task
+# If servers are running: brings window to front and opens the modal
+#   via JavaScript (no page reload, no flash)
 # If not running: starts servers, then opens with ?action=new-task
 # ──────────────────────────────────────────────
 
@@ -20,43 +21,33 @@ FRONTEND_PORT=5173
 TARGET_URL="localhost:$FRONTEND_PORT"
 NEW_TASK_URL="http://$TARGET_URL/?action=new-task"
 
-# ── If servers are running, open new-task URL ──
+# ── If servers are running, trigger new-task modal ──
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
 
-  # Try AppleScript: focus the existing tab, then navigate to new-task URL
-  RESULT=$(osascript <<EOF 2>&1
+  # Step 1: Find the tab and fire a custom JS event (no page reload)
+  osascript <<EOF 2>/dev/null
 tell application "Google Chrome"
     repeat with w from 1 to (count of windows)
         repeat with t from 1 to (count of tabs of window w)
             if URL of tab t of window w contains "$TARGET_URL" then
                 set active tab index of window w to t
-                set URL of tab t of window w to "$NEW_TASK_URL"
                 set index of window w to 1
-                activate
-                return "ok"
+                execute tab t of window w javascript "window.dispatchEvent(new CustomEvent('open-new-task'))"
+                return
             end if
         end repeat
     end repeat
-    return "not_found"
 end tell
 EOF
-  )
 
-  case "$RESULT" in
-    "ok")
-      ;; # Tab found, navigated, and focused
-    "not_found")
-      open -a "Google Chrome" "$NEW_TASK_URL"
-      ;;
-    *)
-      open "$NEW_TASK_URL"
-      ;;
-  esac
+  # Step 2: Activate Chrome AFTER osascript exits — this is async so it
+  # wins the focus race against Stream Deck reclaiming the foreground
+  open -a "Google Chrome"
 
   exit 0
 fi
 
-# ── Servers not running — start them, then open new-task after ready ──
+# ── Servers not running — start them, then open with action param ──
 if [ -f "$SCRIPT_DIR/start.sh" ]; then
   open -a Terminal "$SCRIPT_DIR/start.sh"
 

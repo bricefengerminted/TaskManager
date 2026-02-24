@@ -18,6 +18,13 @@ export function Layout() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Listen for custom event from AppleScript `execute javascript`
+  useEffect(() => {
+    const handler = () => setShowGlobalTaskForm(true);
+    window.addEventListener('open-new-task', handler);
+    return () => window.removeEventListener('open-new-task', handler);
+  }, []);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Ctrl+N or Cmd+N to open global task creation
     if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
