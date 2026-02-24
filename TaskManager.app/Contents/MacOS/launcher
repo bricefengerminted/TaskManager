@@ -1,15 +1,30 @@
 #!/bin/bash
 # TaskManager.app launcher
-# Opens a Terminal window and runs start.sh so you can see logs + Ctrl+C to stop
+# Runs start.sh directly so the .app stays alive in the Dock
 
 # Resolve the project root from the .app bundle location
 APP_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 PROJECT_DIR="$APP_DIR"
 
+# Source user's shell profile so node/npm are on PATH
+if [ -f "$HOME/.zprofile" ]; then
+  source "$HOME/.zprofile" 2>/dev/null
+fi
+if [ -f "$HOME/.zshrc" ]; then
+  source "$HOME/.zshrc" 2>/dev/null
+fi
+if [ -f "$HOME/.bash_profile" ]; then
+  source "$HOME/.bash_profile" 2>/dev/null
+fi
+if [ -f "$HOME/.nvm/nvm.sh" ]; then
+  source "$HOME/.nvm/nvm.sh" 2>/dev/null
+fi
+
+# Add common node locations to PATH
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
 if [ -f "$PROJECT_DIR/start.sh" ]; then
-  # Use "open -a Terminal" to launch start.sh in a visible Terminal window
-  # This avoids AppleScript automation permission issues
-  open -a Terminal "$PROJECT_DIR/start.sh"
+  exec "$PROJECT_DIR/start.sh"
 else
   osascript -e "display alert \"TaskManager\" message \"Could not find start.sh in $PROJECT_DIR. Make sure the TaskManager.app is in your TaskManager project folder.\""
 fi

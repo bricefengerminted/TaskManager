@@ -94,23 +94,29 @@ echo "TaskManager is running at $URL"
 echo "Press Ctrl+C to stop."
 echo ""
 
-# Try to open in a standalone app window (no browser chrome)
-if [ -d "/Applications/Google Chrome.app" ]; then
-  open -a "Google Chrome" --args --app="$URL"
-elif [ -d "/Applications/Google Chrome Canary.app" ]; then
-  open -a "Google Chrome Canary" --args --app="$URL"
-elif [ -d "/Applications/Chromium.app" ]; then
-  open -a "Chromium" --args --app="$URL"
-elif [ -d "/Applications/Microsoft Edge.app" ]; then
-  open -a "Microsoft Edge" --args --app="$URL"
-elif [ -d "/Applications/Brave Browser.app" ]; then
-  open -a "Brave Browser" --args --app="$URL"
-elif command -v open &>/dev/null; then
-  # Fallback: regular browser
+# Open in a standalone app window (no address bar, no tabs — looks native)
+# Must call the browser binary directly; "open -a" ignores --app when already running
+OPENED=false
+for BROWSER in \
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary" \
+  "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"; do
+  if [ -f "$BROWSER" ]; then
+    "$BROWSER" --app="$URL" &>/dev/null &
+    OPENED=true
+    break
+  fi
+done
+
+if [ "$OPENED" = false ]; then
   echo "(Install Chrome or Edge for a native app window experience)"
-  open "$URL"
-elif command -v xdg-open &>/dev/null; then
-  xdg-open "$URL"
+  if command -v open &>/dev/null; then
+    open "$URL"
+  elif command -v xdg-open &>/dev/null; then
+    xdg-open "$URL"
+  fi
 fi
 
 # ── Keep running until Ctrl+C ────────────────
