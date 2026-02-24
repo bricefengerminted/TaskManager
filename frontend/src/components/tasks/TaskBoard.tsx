@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import type { Task, TaskStatus } from '@shared/types';
@@ -19,11 +20,15 @@ interface Props {
 export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
   const { reorderTasks, deleteTask } = useApp();
 
+  // Local state so drag-and-drop updates render synchronously
+  const [localTasks, setLocalTasks] = useState(tasks);
+  useEffect(() => { setLocalTasks(tasks); }, [tasks]);
+
   // Build column task lists sorted by position
   const getColumnTasks = (status: TaskStatus) =>
-    tasks.filter(t => t.status === status).sort((a, b) => a.position - b.position);
+    localTasks.filter(t => t.status === status).sort((a, b) => a.position - b.position);
 
-  const onDragEnd = async (result: DropResult) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
     const srcStatus = result.source.droppableId as TaskStatus;
@@ -52,7 +57,7 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
     }
 
     // Build optimistic tasks array with updated positions and statuses
-    const optimistic = tasks.map(t => {
+    const optimistic = localTasks.map(t => {
       for (const [status, ids] of Object.entries(affectedColumns)) {
         const pos = ids.indexOf(t.id);
         if (pos !== -1) {
@@ -62,12 +67,15 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
       return t;
     });
 
-    await reorderTasks(projectId, affectedColumns, optimistic);
+    // Update local state synchronously (critical for the dnd library)
+    setLocalTasks(optimistic);
+    // Persist to backend (fire and forget, context will sync state back)
+    reorderTasks(projectId, affectedColumns, optimistic);
   };
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-4 p-6 h-full overflow-x-auto">
+      <div className="flex gap-4 p-6 h-full min-w-fit">
         {COLUMNS.map((col) => {
           const colTasks = getColumnTasks(col.id);
           return (
