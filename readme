@@ -65,11 +65,11 @@ npm run install:all
 ### Running the App
 
 ```bash
-# Terminal 1 — start the backend (from /backend)
-npm run dev
+# Terminal 1 — from inside TaskManager/
+cd backend && npm run dev
 
-# Terminal 2 — start the frontend (from /frontend)
-npm run dev
+# Terminal 2 — from inside TaskManager/ (open a new terminal tab)
+cd frontend && npm run dev
 ```
 
 The frontend runs on `http://localhost:5173` (proxies `/api` → backend on port 3001).
