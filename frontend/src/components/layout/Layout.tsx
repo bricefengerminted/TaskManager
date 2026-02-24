@@ -18,11 +18,10 @@ export function Layout() {
     }
   }, [searchParams, setSearchParams]);
 
-  // Listen for custom event from AppleScript `execute javascript`
+  // Expose global function for AppleScript `execute javascript` to call
   useEffect(() => {
-    const handler = () => setShowGlobalTaskForm(true);
-    window.addEventListener('open-new-task', handler);
-    return () => window.removeEventListener('open-new-task', handler);
+    (window as any).__openNewTask = () => setShowGlobalTaskForm(true);
+    return () => { delete (window as any).__openNewTask; };
   }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
