@@ -28,6 +28,7 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  position: number;
   images: string[];
   source: TaskSource;
   slack_raw: string | null;

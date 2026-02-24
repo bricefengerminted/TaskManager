@@ -17,22 +17,59 @@ interface Props {
 }
 
 export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
-  const { updateTaskStatus, deleteTask } = useApp();
+  const { reorderTasks, deleteTask } = useApp();
+
+  // Build column task lists sorted by position
+  const getColumnTasks = (status: TaskStatus) =>
+    tasks.filter(t => t.status === status).sort((a, b) => a.position - b.position);
 
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
-    const newStatus = result.destination.droppableId as TaskStatus;
-    const taskId = result.draggableId;
-    const task = tasks.find(t => t.id === taskId);
-    if (!task || task.status === newStatus) return;
-    await updateTaskStatus(projectId, taskId, newStatus);
+
+    const srcStatus = result.source.droppableId as TaskStatus;
+    const dstStatus = result.destination.droppableId as TaskStatus;
+    const srcIndex = result.source.index;
+    const dstIndex = result.destination.index;
+
+    // No movement
+    if (srcStatus === dstStatus && srcIndex === dstIndex) return;
+
+    const srcCol = [...getColumnTasks(srcStatus)];
+    const [moved] = srcCol.splice(srcIndex, 1);
+
+    const affectedColumns: Record<string, string[]> = {};
+
+    if (srcStatus === dstStatus) {
+      // Same column reorder
+      srcCol.splice(dstIndex, 0, moved);
+      affectedColumns[srcStatus] = srcCol.map(t => t.id);
+    } else {
+      // Cross-column move
+      const dstCol = [...getColumnTasks(dstStatus)];
+      dstCol.splice(dstIndex, 0, moved);
+      affectedColumns[srcStatus] = srcCol.map(t => t.id);
+      affectedColumns[dstStatus] = dstCol.map(t => t.id);
+    }
+
+    // Build optimistic tasks array with updated positions and statuses
+    const optimistic = tasks.map(t => {
+      for (const [status, ids] of Object.entries(affectedColumns)) {
+        const pos = ids.indexOf(t.id);
+        if (pos !== -1) {
+          return { ...t, status: status as TaskStatus, position: pos };
+        }
+      }
+      return t;
+    });
+
+    await reorderTasks(projectId, affectedColumns, optimistic);
   };
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex gap-4 p-6 h-full overflow-x-auto">
         {COLUMNS.map((col) => {
-          const colTasks = tasks.filter(t => t.status === col.id);
+          const colTasks = getColumnTasks(col.id);
           return (
             <div key={col.id} className="flex flex-col w-72 flex-shrink-0">
               <div className="flex items-center justify-between mb-3">

@@ -17,6 +17,7 @@ export const tasks = sqliteTable('tasks', {
   status: text('status', { enum: ['todo', 'in_progress', 'done'] }).notNull().default('todo'),
   priority: text('priority', { enum: ['low', 'medium', 'high', 'urgent'] }).notNull().default('medium'),
   due_date: text('due_date'),
+  position: integer('position').notNull().default(0),
   images: text('images').notNull().default('[]'),
   source: text('source', { enum: ['manual', 'slack'] }).notNull().default('manual'),
   slack_raw: text('slack_raw'),

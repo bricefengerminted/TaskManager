@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
 import { tasks, projects } from '../db/schema';
@@ -22,7 +22,10 @@ router.get('/', async (req: Request, res: Response) => {
   const project = await db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
-  const rows = await db.select().from(tasks).where(eq(tasks.project_id, req.params.projectId)).all();
+  const rows = await db.select().from(tasks)
+    .where(eq(tasks.project_id, req.params.projectId))
+    .orderBy(asc(tasks.position))
+    .all();
   return res.json(rows.map(withParsedImages));
 });
 
@@ -43,6 +46,12 @@ router.post('/', async (req: Request, res: Response) => {
 
   if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
 
+  // Shift existing tasks in this status column down to make room at position 0
+  await db.update(tasks)
+    .set({ position: sql`${tasks.position} + 1` })
+    .where(and(eq(tasks.project_id, req.params.projectId), eq(tasks.status, status as any)))
+    .run();
+
   const id = uuidv4();
   const ts = now();
   const task = {
@@ -53,6 +62,7 @@ router.post('/', async (req: Request, res: Response) => {
     status: status as 'todo' | 'in_progress' | 'done',
     priority: priority as 'low' | 'medium' | 'high' | 'urgent',
     due_date: due_date ?? null,
+    position: 0,
     images: '[]',
     source: source as 'manual' | 'slack',
     slack_raw: slack_raw ?? null,
@@ -61,6 +71,31 @@ router.post('/', async (req: Request, res: Response) => {
   };
   await db.insert(tasks).values(task).run();
   return res.status(201).json(withParsedImages(task));
+});
+
+// PATCH /api/projects/:projectId/tasks/reorder
+// Body: { columns: { [status: string]: string[] } }
+// Each key is a status, value is ordered array of task IDs
+router.patch('/reorder', async (req: Request, res: Response) => {
+  const { columns } = req.body as { columns: Record<string, string[]> };
+  if (!columns) return res.status(400).json({ error: 'columns is required' });
+
+  const ts = now();
+  for (const [status, taskIds] of Object.entries(columns)) {
+    for (let i = 0; i < taskIds.length; i++) {
+      await db.update(tasks)
+        .set({ status: status as any, position: i, updated_at: ts })
+        .where(and(eq(tasks.id, taskIds[i]), eq(tasks.project_id, req.params.projectId)))
+        .run();
+    }
+  }
+
+  // Return updated tasks for this project
+  const rows = await db.select().from(tasks)
+    .where(eq(tasks.project_id, req.params.projectId))
+    .orderBy(asc(tasks.position))
+    .all();
+  return res.json(rows.map(withParsedImages));
 });
 
 // GET /api/projects/:projectId/tasks/:taskId

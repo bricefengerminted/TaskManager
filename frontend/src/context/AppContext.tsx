@@ -67,6 +67,7 @@ interface AppContextValue {
   createTask: (projectId: string, data: Parameters<typeof api.createTask>[1]) => Promise<Task>;
   updateTask: (projectId: string, taskId: string, data: Parameters<typeof api.updateTask>[2]) => Promise<void>;
   updateTaskStatus: (projectId: string, taskId: string, status: import('@shared/types').TaskStatus) => Promise<void>;
+  reorderTasks: (projectId: string, columns: Record<string, string[]>, optimisticTasks: Task[]) => Promise<void>;
   deleteTask: (projectId: string, taskId: string) => Promise<void>;
   loadDashboard: () => Promise<void>;
   clearError: () => void;
@@ -158,6 +159,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.tasks]);
 
+  const reorderTasks = useCallback(async (projectId: string, columns: Record<string, string[]>, optimisticTasks: Task[]) => {
+    // Optimistically apply the new order
+    dispatch({ type: 'SET_TASKS', payload: optimisticTasks });
+    try {
+      const updated = await api.reorderTasks(projectId, columns);
+      dispatch({ type: 'SET_TASKS', payload: updated });
+    } catch (e) {
+      // Revert on failure by reloading
+      try {
+        const tasks = await api.getTasks(projectId);
+        dispatch({ type: 'SET_TASKS', payload: tasks });
+      } catch {}
+      dispatch({ type: 'SET_ERROR', payload: (e as Error).message });
+    }
+  }, []);
+
   const deleteTask = useCallback(async (projectId: string, taskId: string) => {
     await api.deleteTask(projectId, taskId);
     dispatch({ type: 'REMOVE_TASK', payload: taskId });
@@ -180,7 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       state, loadProjects, loadProject, createProject, updateProject, archiveProject,
-      loadTasks, createTask, updateTask, updateTaskStatus, deleteTask, loadDashboard, clearError,
+      loadTasks, createTask, updateTask, updateTaskStatus, reorderTasks, deleteTask, loadDashboard, clearError,
     }}>
       {children}
     </AppContext.Provider>

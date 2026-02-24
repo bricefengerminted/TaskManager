@@ -37,6 +37,11 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
+  reorderTasks: (projectId: string, columns: Record<string, string[]>) =>
+    request<import('@shared/types').Task[]>(`/projects/${projectId}/tasks/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ columns }),
+    }),
   deleteTask: (projectId: string, taskId: string) =>
     request<void>(`/projects/${projectId}/tasks/${taskId}`, { method: 'DELETE' }),
 
