@@ -1,16 +1,10 @@
 #!/bin/bash
 # ──────────────────────────────────────────────
-# TaskManager.app launcher (persistent)
+# TaskManager.app launcher
 #
-# This process stays alive so the app behaves like a real macOS app:
-#   - Dock icon persists while running
-#   - Right-click → Quit kills the servers
-#   - Clicking the Dock icon again brings the window to front
-#
-# How it works:
-#   - First launch: starts servers, stays alive
-#   - Subsequent clicks: detect the running instance via PID file,
-#     signal it (USR1) to bring the window to front, then exit
+# Fire-and-forget: starts servers if needed, or brings the existing
+# window to front, then exits immediately. No persistent process,
+# no Dock icon, no bouncing.
 # ──────────────────────────────────────────────
 
 # ── Fix PATH for .app / Finder / Stream Deck context ──
@@ -25,53 +19,49 @@ fi
 # Resolve the project root from the .app bundle location
 APP_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 PROJECT_DIR="$APP_DIR"
-PIDFILE="/tmp/taskmanager-app.pid"
 FRONTEND_PORT=5173
+TARGET_URL="localhost:$FRONTEND_PORT"
 
-# ── Check if another launcher instance is already running ──
-if [ -f "$PIDFILE" ]; then
-  EXISTING_PID=$(/bin/cat "$PIDFILE")
-  if kill -0 "$EXISTING_PID" 2>/dev/null; then
-    # Already running — signal it to bring window to front
-    kill -USR1 "$EXISTING_PID"
-    exit 0
-  fi
-  # Stale PID file — remove and continue as primary
-  rm -f "$PIDFILE"
-fi
-
-# ── We are the primary instance ──
-echo $$ > "$PIDFILE"
-
-# Handle USR1: bring window to front (triggered by Dock re-click)
-trap '"$PROJECT_DIR/bring-to-front.sh" &' USR1
-
-# Handle TERM/INT: Quit from Dock or Ctrl+C
-cleanup() {
-  kill $(/usr/bin/lsof -ti :$FRONTEND_PORT) 2>/dev/null
-  kill $(/usr/bin/lsof -ti :3001) 2>/dev/null
-  rm -f "$PIDFILE"
-  exit 0
-}
-trap cleanup TERM INT
-
-# ── Start or focus ──
+# ── If servers are already running, bring window to front and exit ──
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
-  # Servers already running — just bring the window to front
-  "$PROJECT_DIR/bring-to-front.sh" &
-else
-  # Start servers
-  if [ -f "$PROJECT_DIR/start.sh" ]; then
-    open -a Terminal "$PROJECT_DIR/start.sh"
-  else
-    osascript -e "display alert \"TaskManager\" message \"Could not find start.sh in $PROJECT_DIR.\""
-    rm -f "$PIDFILE"
-    exit 1
-  fi
+
+  # Try AppleScript to focus the exact Chrome tab (works without Accessibility permissions)
+  RESULT=$(osascript <<EOF 2>&1
+tell application "Google Chrome"
+    repeat with w from 1 to (count of windows)
+        repeat with t from 1 to (count of tabs of window w)
+            if URL of tab t of window w contains "$TARGET_URL" then
+                set active tab index of window w to t
+                set index of window w to 1
+                activate
+                return "ok"
+            end if
+        end repeat
+    end repeat
+    return "not_found"
+end tell
+EOF
+  )
+
+  case "$RESULT" in
+    "ok")
+      ;; # Tab found and focused
+    "not_found")
+      open -a "Google Chrome" "http://$TARGET_URL"
+      ;;
+    *)
+      # AppleScript failed (permissions or Chrome not running) — fallback
+      open "http://$TARGET_URL"
+      ;;
+  esac
+
+  exit 0
 fi
 
-# ── Stay alive so the Dock icon persists and Quit works ──
-while true; do
-  sleep 1 &
-  wait $!  # wait is interruptible by signals, unlike sleep
-done
+# ── Servers not running — start them ──
+if [ -f "$PROJECT_DIR/start.sh" ]; then
+  open -a Terminal "$PROJECT_DIR/start.sh"
+else
+  osascript -e "display alert \"TaskManager\" message \"Could not find start.sh in $PROJECT_DIR.\""
+  exit 1
+fi
