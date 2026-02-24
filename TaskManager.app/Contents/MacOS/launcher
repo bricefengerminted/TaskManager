@@ -1,21 +1,31 @@
 #!/bin/bash
 # TaskManager.app launcher
-# Resolves the project root from the .app bundle location and runs start.sh
+# One click: starts backend + frontend, opens the browser
 
+# Resolve the project root from the .app bundle location
 APP_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
-
-# The .app lives inside the TaskManager repo
 PROJECT_DIR="$APP_DIR"
 
-# If start.sh exists next to the .app, use it
+# Source user's shell profile so node/npm are on PATH
+if [ -f "$HOME/.zprofile" ]; then
+  source "$HOME/.zprofile" 2>/dev/null
+fi
+if [ -f "$HOME/.zshrc" ]; then
+  source "$HOME/.zshrc" 2>/dev/null
+fi
+if [ -f "$HOME/.bash_profile" ]; then
+  source "$HOME/.bash_profile" 2>/dev/null
+fi
+if [ -f "$HOME/.nvm/nvm.sh" ]; then
+  source "$HOME/.nvm/nvm.sh" 2>/dev/null
+fi
+
+# Add common node locations to PATH
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
 if [ -f "$PROJECT_DIR/start.sh" ]; then
-  # Run in Terminal so the user can see output and Ctrl+C
-  osascript <<APPLESCRIPT
-    tell application "Terminal"
-      activate
-      do script "cd \"$PROJECT_DIR\" && ./start.sh"
-    end tell
-APPLESCRIPT
+  # Run start.sh directly — it handles everything (deps, servers, browser)
+  exec "$PROJECT_DIR/start.sh"
 else
   osascript -e "display alert \"TaskManager\" message \"Could not find start.sh in $PROJECT_DIR. Make sure the TaskManager.app is in your TaskManager project folder.\""
 fi
