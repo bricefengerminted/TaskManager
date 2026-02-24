@@ -69,6 +69,19 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                               </button>
                             </div>
 
+                            {task.images && task.images.length > 0 && (
+                              <div className="flex gap-1 mt-2 overflow-hidden">
+                                {task.images.slice(0, 3).map((url, i) => (
+                                  <img key={i} src={url} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" />
+                                ))}
+                                {task.images.length > 3 && (
+                                  <div className="w-12 h-12 rounded border border-slate-200 bg-slate-100 flex items-center justify-center text-xs text-slate-500">
+                                    +{task.images.length - 3}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
                               <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${PRIORITY_COLORS[task.priority]}`}>
                                 {PRIORITY_LABELS[task.priority]}

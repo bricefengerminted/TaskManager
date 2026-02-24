@@ -49,6 +49,16 @@ export function TaskList({ projectId, tasks, onEditTask }: Props) {
                   {task.title}
                 </span>
                 {task.description && <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{task.description}</p>}
+                {task.images && task.images.length > 0 && (
+                  <div className="flex gap-1 mt-1">
+                    {task.images.slice(0, 4).map((url, i) => (
+                      <img key={i} src={url} alt="" className="w-8 h-8 object-cover rounded border border-slate-200" />
+                    ))}
+                    {task.images.length > 4 && (
+                      <span className="text-xs text-slate-400 self-center ml-1">+{task.images.length - 4}</span>
+                    )}
+                  </div>
+                )}
               </td>
               <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <select

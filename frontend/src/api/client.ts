@@ -40,6 +40,18 @@ export const api = {
   deleteTask: (projectId: string, taskId: string) =>
     request<void>(`/projects/${projectId}/tasks/${taskId}`, { method: 'DELETE' }),
 
+  // Uploads
+  uploadImages: async (files: File[]): Promise<{ urls: string[] }> => {
+    const form = new FormData();
+    files.forEach((f) => form.append('images', f));
+    const res = await fetch(`${BASE}/uploads`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Upload failed');
+    }
+    return res.json();
+  },
+
   // Dashboard
   getDashboard: () => request<import('@shared/types').DashboardStats>('/dashboard'),
 };

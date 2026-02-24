@@ -27,6 +27,13 @@ export async function runMigrations() {
     );
   `);
 
+  // Add images column if it doesn't exist (safe to run repeatedly)
+  const cols = await client.execute(`PRAGMA table_info(tasks)`);
+  const hasImages = cols.rows.some((r: any) => r.name === 'images');
+  if (!hasImages) {
+    await client.execute(`ALTER TABLE tasks ADD COLUMN images TEXT NOT NULL DEFAULT '[]'`);
+  }
+
   // Ensure "General" project always exists
   const ts = new Date().toISOString();
   await client.execute({

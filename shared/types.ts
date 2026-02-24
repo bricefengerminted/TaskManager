@@ -28,6 +28,7 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  images: string[];
   source: TaskSource;
   slack_raw: string | null;
   created_at: string;
@@ -61,6 +62,7 @@ export interface UpdateTaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   due_date?: string | null;
+  images?: string[];
 }
 
 export interface DashboardStats {

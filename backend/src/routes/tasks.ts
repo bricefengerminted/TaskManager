@@ -11,13 +11,19 @@ function now() {
   return new Date().toISOString();
 }
 
+// Parse the images JSON column into an array for API responses
+function withParsedImages(row: any) {
+  if (!row) return row;
+  return { ...row, images: JSON.parse(row.images || '[]') };
+}
+
 // GET /api/projects/:projectId/tasks
 router.get('/', async (req: Request, res: Response) => {
   const project = await db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
   const rows = await db.select().from(tasks).where(eq(tasks.project_id, req.params.projectId)).all();
-  return res.json(rows);
+  return res.json(rows.map(withParsedImages));
 });
 
 // POST /api/projects/:projectId/tasks
@@ -47,13 +53,14 @@ router.post('/', async (req: Request, res: Response) => {
     status: status as 'todo' | 'in_progress' | 'done',
     priority: priority as 'low' | 'medium' | 'high' | 'urgent',
     due_date: due_date ?? null,
+    images: '[]',
     source: source as 'manual' | 'slack',
     slack_raw: slack_raw ?? null,
     created_at: ts,
     updated_at: ts,
   };
   await db.insert(tasks).values(task).run();
-  return res.status(201).json(task);
+  return res.status(201).json(withParsedImages(task));
 });
 
 // GET /api/projects/:projectId/tasks/:taskId
@@ -64,7 +71,7 @@ router.get('/:taskId', async (req: Request, res: Response) => {
     .where(and(eq(tasks.id, req.params.taskId), eq(tasks.project_id, req.params.projectId)))
     .get();
   if (!task) return res.status(404).json({ error: 'Task not found' });
-  return res.json(task);
+  return res.json(withParsedImages(task));
 });
 
 // PUT /api/projects/:projectId/tasks/:taskId
@@ -76,7 +83,7 @@ router.put('/:taskId', async (req: Request, res: Response) => {
     .get();
   if (!task) return res.status(404).json({ error: 'Task not found' });
 
-  const { title, description, status, priority, due_date }: UpdateTaskInput = req.body;
+  const { title, description, status, priority, due_date, images }: UpdateTaskInput = req.body;
 
   const updated = {
     ...task,
@@ -85,10 +92,11 @@ router.put('/:taskId', async (req: Request, res: Response) => {
     status: (status ?? task.status) as 'todo' | 'in_progress' | 'done',
     priority: (priority ?? task.priority) as 'low' | 'medium' | 'high' | 'urgent',
     due_date: due_date !== undefined ? due_date : task.due_date,
+    images: images !== undefined ? JSON.stringify(images) : task.images,
     updated_at: now(),
   };
   await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
-  return res.json(updated);
+  return res.json(withParsedImages(updated));
 });
 
 // DELETE /api/projects/:projectId/tasks/:taskId
@@ -119,7 +127,7 @@ router.patch('/:taskId/status', async (req: Request, res: Response) => {
 
   const updated = { ...task, status, updated_at: now() };
   await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
-  return res.json(updated);
+  return res.json(withParsedImages(updated));
 });
 
 export default router;

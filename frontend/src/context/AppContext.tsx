@@ -141,9 +141,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateTaskStatus = useCallback(async (projectId: string, taskId: string, status: import('@shared/types').TaskStatus) => {
-    const updated = await api.updateTaskStatus(projectId, taskId, status);
-    dispatch({ type: 'UPDATE_TASK', payload: updated });
-  }, []);
+    // Optimistically update so drag-and-drop doesn't snap back
+    const optimistic = state.tasks.find(t => t.id === taskId);
+    if (optimistic) {
+      dispatch({ type: 'UPDATE_TASK', payload: { ...optimistic, status } });
+    }
+    try {
+      const updated = await api.updateTaskStatus(projectId, taskId, status);
+      dispatch({ type: 'UPDATE_TASK', payload: updated });
+    } catch (e) {
+      // Revert on failure
+      if (optimistic) {
+        dispatch({ type: 'UPDATE_TASK', payload: optimistic });
+      }
+      dispatch({ type: 'SET_ERROR', payload: (e as Error).message });
+    }
+  }, [state.tasks]);
 
   const deleteTask = useCallback(async (projectId: string, taskId: string) => {
     await api.deleteTask(projectId, taskId);
