@@ -14,10 +14,10 @@ function now() {
 // GET /api/projects
 router.get('/', async (_req: Request, res: Response) => {
   try {
-    const rows = db.select().from(projects).where(eq(projects.status, 'active')).all();
+    const rows = await db.select().from(projects).where(eq(projects.status, 'active')).all();
 
-    const result = rows.map((p) => {
-      const counts = db
+    const result = await Promise.all(rows.map(async (p) => {
+      const counts = await db
         .select({
           status: tasks.status,
           count: sql<number>`count(*)`.as('count'),
@@ -35,7 +35,7 @@ router.get('/', async (_req: Request, res: Response) => {
       }
 
       const today = new Date().toISOString().split('T')[0];
-      const overdueCount = db
+      const overdueCount = await db
         .select({ count: sql<number>`count(*)`.as('count') })
         .from(tasks)
         .where(
@@ -45,7 +45,7 @@ router.get('/', async (_req: Request, res: Response) => {
       taskCounts.overdue = Number(overdueCount?.count ?? 0);
 
       return { ...p, task_counts: taskCounts };
-    });
+    }));
 
     res.json(result);
   } catch (err) {
@@ -54,9 +54,9 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 // GET /api/projects/archived
-router.get('/archived', (_req: Request, res: Response) => {
+router.get('/archived', async (_req: Request, res: Response) => {
   try {
-    const rows = db.select().from(projects).where(eq(projects.status, 'archived')).all();
+    const rows = await db.select().from(projects).where(eq(projects.status, 'archived')).all();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch archived projects' });
@@ -64,7 +64,7 @@ router.get('/archived', (_req: Request, res: Response) => {
 });
 
 // POST /api/projects
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const { name, description = '' }: CreateProjectInput = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ error: 'name is required' });
@@ -72,21 +72,21 @@ router.post('/', (req: Request, res: Response) => {
   const id = uuidv4();
   const ts = now();
   const project = { id, name: name.trim(), description, status: 'active' as const, created_at: ts, updated_at: ts };
-  db.insert(projects).values(project).run();
+  await db.insert(projects).values(project).run();
   return res.status(201).json(project);
 });
 
 // GET /api/projects/:id
-router.get('/:id', (req: Request, res: Response) => {
-  const project = db.select().from(projects).where(eq(projects.id, req.params.id)).get();
+router.get('/:id', async (req: Request, res: Response) => {
+  const project = await db.select().from(projects).where(eq(projects.id, req.params.id)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
   return res.json(project);
 });
 
 // PUT /api/projects/:id
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   const { name, description, status }: UpdateProjectInput = req.body;
-  const project = db.select().from(projects).where(eq(projects.id, req.params.id)).get();
+  const project = await db.select().from(projects).where(eq(projects.id, req.params.id)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
   const updated = {
@@ -96,15 +96,15 @@ router.put('/:id', (req: Request, res: Response) => {
     status: status ?? project.status,
     updated_at: now(),
   };
-  db.update(projects).set(updated).where(eq(projects.id, req.params.id)).run();
+  await db.update(projects).set(updated).where(eq(projects.id, req.params.id)).run();
   return res.json(updated);
 });
 
 // DELETE /api/projects/:id  (archive)
-router.delete('/:id', (req: Request, res: Response) => {
-  const project = db.select().from(projects).where(eq(projects.id, req.params.id)).get();
+router.delete('/:id', async (req: Request, res: Response) => {
+  const project = await db.select().from(projects).where(eq(projects.id, req.params.id)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
-  db.update(projects).set({ status: 'archived', updated_at: now() }).where(eq(projects.id, req.params.id)).run();
+  await db.update(projects).set({ status: 'archived', updated_at: now() }).where(eq(projects.id, req.params.id)).run();
   return res.status(204).send();
 });
 

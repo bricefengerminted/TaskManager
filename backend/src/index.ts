@@ -12,7 +12,10 @@ app.use(cors());
 app.use(express.json());
 
 // Run migrations on startup
-runMigrations();
+runMigrations().catch((err) => {
+  console.error('Migration failed:', err);
+  process.exit(1);
+});
 
 // Routes
 app.use('/api/projects', projectsRouter);

@@ -5,11 +5,11 @@ import { projects, tasks } from '../db/schema';
 
 const router = Router();
 
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', async (_req: Request, res: Response) => {
   try {
-    const activeProjects = db.select().from(projects).where(eq(projects.status, 'active')).all();
+    const activeProjects = await db.select().from(projects).where(eq(projects.status, 'active')).all();
 
-    const taskStatusCounts = db
+    const taskStatusCounts = await db
       .select({ status: tasks.status, count: sql<number>`count(*)`.as('count') })
       .from(tasks)
       .groupBy(tasks.status)
@@ -26,15 +26,15 @@ router.get('/', (_req: Request, res: Response) => {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const overdueResult = db
+    const overdueResult = await db
       .select({ count: sql<number>`count(*)`.as('count') })
       .from(tasks)
       .where(sql`${tasks.due_date} IS NOT NULL AND ${tasks.due_date} < ${today} AND ${tasks.status} != 'done'`)
       .get();
     const overdueTasks = Number(overdueResult?.count ?? 0);
 
-    const projectsWithCounts = activeProjects.map((p) => {
-      const counts = db
+    const projectsWithCounts = await Promise.all(activeProjects.map(async (p) => {
+      const counts = await db
         .select({ status: tasks.status, count: sql<number>`count(*)`.as('count') })
         .from(tasks)
         .where(eq(tasks.project_id, p.id))
@@ -48,7 +48,7 @@ router.get('/', (_req: Request, res: Response) => {
         if (c.status === 'done') tc.done = Number(c.count);
       }
 
-      const overdueProj = db
+      const overdueProj = await db
         .select({ count: sql<number>`count(*)`.as('count') })
         .from(tasks)
         .where(
@@ -58,7 +58,7 @@ router.get('/', (_req: Request, res: Response) => {
       tc.overdue = Number(overdueProj?.count ?? 0);
 
       return { ...p, task_counts: tc };
-    });
+    }));
 
     res.json({
       total_projects: activeProjects.length,

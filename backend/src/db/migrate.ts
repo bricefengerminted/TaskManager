@@ -1,8 +1,8 @@
-import { sqlite } from './index';
+import { client } from './index';
 
 // Create tables if they don't exist (simple migration approach without drizzle-kit push)
-export function runMigrations() {
-  sqlite.exec(`
+export async function runMigrations() {
+  await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,

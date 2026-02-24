@@ -12,17 +12,17 @@ function now() {
 }
 
 // GET /api/projects/:projectId/tasks
-router.get('/', (req: Request, res: Response) => {
-  const project = db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
+router.get('/', async (req: Request, res: Response) => {
+  const project = await db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
-  const rows = db.select().from(tasks).where(eq(tasks.project_id, req.params.projectId)).all();
+  const rows = await db.select().from(tasks).where(eq(tasks.project_id, req.params.projectId)).all();
   return res.json(rows);
 });
 
 // POST /api/projects/:projectId/tasks
-router.post('/', (req: Request, res: Response) => {
-  const project = db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
+router.post('/', async (req: Request, res: Response) => {
+  const project = await db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
   const {
@@ -52,13 +52,13 @@ router.post('/', (req: Request, res: Response) => {
     created_at: ts,
     updated_at: ts,
   };
-  db.insert(tasks).values(task).run();
+  await db.insert(tasks).values(task).run();
   return res.status(201).json(task);
 });
 
 // GET /api/projects/:projectId/tasks/:taskId
-router.get('/:taskId', (req: Request, res: Response) => {
-  const task = db
+router.get('/:taskId', async (req: Request, res: Response) => {
+  const task = await db
     .select()
     .from(tasks)
     .where(and(eq(tasks.id, req.params.taskId), eq(tasks.project_id, req.params.projectId)))
@@ -68,8 +68,8 @@ router.get('/:taskId', (req: Request, res: Response) => {
 });
 
 // PUT /api/projects/:projectId/tasks/:taskId
-router.put('/:taskId', (req: Request, res: Response) => {
-  const task = db
+router.put('/:taskId', async (req: Request, res: Response) => {
+  const task = await db
     .select()
     .from(tasks)
     .where(and(eq(tasks.id, req.params.taskId), eq(tasks.project_id, req.params.projectId)))
@@ -87,25 +87,25 @@ router.put('/:taskId', (req: Request, res: Response) => {
     due_date: due_date !== undefined ? due_date : task.due_date,
     updated_at: now(),
   };
-  db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
+  await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
   return res.json(updated);
 });
 
 // DELETE /api/projects/:projectId/tasks/:taskId
-router.delete('/:taskId', (req: Request, res: Response) => {
-  const task = db
+router.delete('/:taskId', async (req: Request, res: Response) => {
+  const task = await db
     .select()
     .from(tasks)
     .where(and(eq(tasks.id, req.params.taskId), eq(tasks.project_id, req.params.projectId)))
     .get();
   if (!task) return res.status(404).json({ error: 'Task not found' });
-  db.delete(tasks).where(eq(tasks.id, req.params.taskId)).run();
+  await db.delete(tasks).where(eq(tasks.id, req.params.taskId)).run();
   return res.status(204).send();
 });
 
 // PATCH /api/projects/:projectId/tasks/:taskId/status
-router.patch('/:taskId/status', (req: Request, res: Response) => {
-  const task = db
+router.patch('/:taskId/status', async (req: Request, res: Response) => {
+  const task = await db
     .select()
     .from(tasks)
     .where(and(eq(tasks.id, req.params.taskId), eq(tasks.project_id, req.params.projectId)))
@@ -118,7 +118,7 @@ router.patch('/:taskId/status', (req: Request, res: Response) => {
   }
 
   const updated = { ...task, status, updated_at: now() };
-  db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
+  await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
   return res.json(updated);
 });
 

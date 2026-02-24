@@ -1,13 +1,11 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
 import { projects, tasks } from './schema';
 import path from 'path';
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../taskmanager.db');
 
-const sqlite = new Database(DB_PATH);
-sqlite.pragma('journal_mode = WAL');
-sqlite.pragma('foreign_keys = ON');
+const client = createClient({ url: `file:${DB_PATH}` });
 
-export const db = drizzle(sqlite, { schema: { projects, tasks } });
-export { sqlite };
+export const db = drizzle(client, { schema: { projects, tasks } });
+export { client };
