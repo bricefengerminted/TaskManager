@@ -1,4 +1,5 @@
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import type { DropResult } from '@hello-pangea/dnd';
 import type { Task, TaskStatus } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { PRIORITY_COLORS, PRIORITY_LABELS, formatDate, isOverdue } from '../../utils';
