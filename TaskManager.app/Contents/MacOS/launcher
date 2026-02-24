@@ -26,6 +26,7 @@ TARGET_URL="localhost:$FRONTEND_PORT"
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
 
   # Try AppleScript to focus the exact Chrome tab (works without Accessibility permissions)
+  # The delay before activate lets Stream Deck release focus first
   RESULT=$(osascript <<EOF 2>&1
 tell application "Google Chrome"
     repeat with w from 1 to (count of windows)
@@ -33,6 +34,7 @@ tell application "Google Chrome"
             if URL of tab t of window w contains "$TARGET_URL" then
                 set active tab index of window w to t
                 set index of window w to 1
+                delay 0.5
                 activate
                 return "ok"
             end if
@@ -46,11 +48,8 @@ EOF
   case "$RESULT" in
     "ok")
       ;; # Tab found and focused
-    "not_found")
-      open -a "Google Chrome" "http://$TARGET_URL"
-      ;;
     *)
-      # AppleScript failed (permissions or Chrome not running) — fallback
+      # AppleScript failed or tab not found — open the URL
       open "http://$TARGET_URL"
       ;;
   esac

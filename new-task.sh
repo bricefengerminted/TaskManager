@@ -24,7 +24,8 @@ NEW_TASK_URL="http://$TARGET_URL/?action=new-task"
 # ── If servers are running, trigger new-task modal ──
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
 
-  # Step 1: Find the tab and fire a custom JS event (no page reload)
+  # Find the tab, fire JS event, and activate — all in one AppleScript.
+  # The delay lets Stream Deck release focus before we activate Chrome.
   osascript <<EOF 2>/dev/null
 tell application "Google Chrome"
     repeat with w from 1 to (count of windows)
@@ -33,16 +34,14 @@ tell application "Google Chrome"
                 set active tab index of window w to t
                 set index of window w to 1
                 execute tab t of window w javascript "window.dispatchEvent(new CustomEvent('open-new-task'))"
+                delay 0.5
+                activate
                 return
             end if
         end repeat
     end repeat
 end tell
 EOF
-
-  # Step 2: Activate Chrome AFTER osascript exits — this is async so it
-  # wins the focus race against Stream Deck reclaiming the foreground
-  open -a "Google Chrome"
 
   exit 0
 fi
