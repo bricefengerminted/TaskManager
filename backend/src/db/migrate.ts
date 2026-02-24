@@ -26,5 +26,14 @@ export async function runMigrations() {
       updated_at TEXT NOT NULL
     );
   `);
+
+  // Ensure "General" project always exists
+  const ts = new Date().toISOString();
+  await client.execute({
+    sql: `INSERT OR IGNORE INTO projects (id, name, description, status, created_at, updated_at)
+          VALUES ('general', 'General', 'Default project for quick task capture', 'active', ?, ?)`,
+    args: [ts, ts],
+  });
+
   console.log('Migrations complete.');
 }

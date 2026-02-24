@@ -1,17 +1,20 @@
-import { useState } from 'react';
-import type { Task, TaskStatus, TaskPriority } from '@shared/types';
+import { useState, useEffect } from 'react';
+import type { Task, TaskStatus, TaskPriority, Project } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 
 interface Props {
-  projectId: string;
+  projectId?: string;
   task: Task | null;
   onClose: () => void;
 }
 
+const GENERAL_PROJECT_ID = 'general';
+
 export function TaskForm({ projectId, task, onClose }: Props) {
-  const { createTask, updateTask, deleteTask } = useApp();
+  const { state, createTask, updateTask, deleteTask, loadProjects } = useApp();
   const isEdit = Boolean(task);
 
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? task?.project_id ?? GENERAL_PROJECT_ID);
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'todo');
@@ -20,16 +23,26 @@ export function TaskForm({ projectId, task, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Ensure projects are loaded for the dropdown
+  useEffect(() => {
+    if (state.projects.length === 0) {
+      loadProjects();
+    }
+  }, [state.projects.length, loadProjects]);
+
+  const projects = state.projects;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { setError('Title is required'); return; }
     setSaving(true);
     setError('');
     try {
+      const targetProjectId = selectedProjectId;
       if (isEdit && task) {
-        await updateTask(projectId, task.id, { title, description, status, priority, due_date: dueDate || null });
+        await updateTask(task.project_id, task.id, { title, description, status, priority, due_date: dueDate || null });
       } else {
-        await createTask(projectId, { title, description, status, priority, due_date: dueDate || null });
+        await createTask(targetProjectId, { title, description, status, priority, due_date: dueDate || null });
       }
       onClose();
     } catch (e) {
@@ -41,7 +54,7 @@ export function TaskForm({ projectId, task, onClose }: Props) {
 
   const handleDelete = async () => {
     if (!task || !confirm('Delete this task?')) return;
-    await deleteTask(projectId, task.id);
+    await deleteTask(task.project_id, task.id);
     onClose();
   };
 
@@ -59,6 +72,22 @@ export function TaskForm({ projectId, task, onClose }: Props) {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+          {/* Project selector */}
+          {!isEdit && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Project</label>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>
