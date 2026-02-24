@@ -4,6 +4,15 @@
 # Starts backend + frontend, opens the browser
 # ──────────────────────────────────────────────
 
+# ── Fix PATH (in case launched from a minimal shell context) ──
+for p in /opt/homebrew/bin /usr/local/bin "$HOME/.nvm/current/bin" "$HOME/.fnm/aliases/default/bin" "$HOME/.volta/bin"; do
+  [ -d "$p" ] && export PATH="$p:$PATH"
+done
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+  export NVM_DIR="$HOME/.nvm"
+  . "$NVM_DIR/nvm.sh" 2>/dev/null
+fi
+
 # Resolve the project root (where this script lives)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
