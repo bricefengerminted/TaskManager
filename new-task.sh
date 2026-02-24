@@ -2,7 +2,8 @@
 # ──────────────────────────────────────────────
 # new-task.sh — Open TaskManager and start the New Task flow
 #
-# If servers are running: navigates to ?action=new-task and brings to front
+# If servers are running + app window open: navigates to ?action=new-task
+# If servers are running but no app window: opens a new --app window
 # If not running: starts servers, then opens with ?action=new-task
 # ──────────────────────────────────────────────
 
@@ -20,11 +21,27 @@ FRONTEND_PORT=5173
 TARGET_URL="localhost:$FRONTEND_PORT"
 NEW_TASK_URL="http://$TARGET_URL/?action=new-task"
 
-# ── If servers are running, navigate to new-task and bring to front ──
+# ── Helper: open a new --app window (same as start.sh does) ──
+open_app_window() {
+  local url="$1"
+  for BROWSER in \
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+    "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary" \
+    "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"; do
+    if [ -f "$BROWSER" ]; then
+      "$BROWSER" --app="$url" &>/dev/null &
+      return
+    fi
+  done
+  # No Chromium browser found — fallback to plain open
+  open "$url"
+}
+
+# ── If servers are running, find the app window or open one ──
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
 
-  # Mirror the exact pattern from the launcher (which works for bring-to-front)
-  # but set the URL to include ?action=new-task before activating
   RESULT=$(osascript <<EOF 2>&1
 tell application "Google Chrome"
     repeat with w from 1 to (count of windows)
@@ -46,10 +63,10 @@ EOF
 
   case "$RESULT" in
     "ok")
-      ;; # Tab found, navigated, and focused
+      ;; # App window found, navigated, and focused
     *)
-      # Fallback — open URL directly
-      open "http://$NEW_TASK_URL"
+      # No app window open — launch a new --app window with the action URL
+      open_app_window "$NEW_TASK_URL"
       ;;
   esac
 
@@ -60,11 +77,10 @@ fi
 if [ -f "$SCRIPT_DIR/start.sh" ]; then
   open -a Terminal "$SCRIPT_DIR/start.sh"
 
-  # Wait for frontend to come up, then open with new-task action
   for i in $(seq 1 30); do
     if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
       sleep 1
-      osascript -e "tell application \"Google Chrome\" to open location \"$NEW_TASK_URL\"" -e "tell application \"Google Chrome\" to activate"
+      open_app_window "$NEW_TASK_URL"
       exit 0
     fi
     sleep 1
