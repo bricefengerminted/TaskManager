@@ -2,8 +2,7 @@
 # ──────────────────────────────────────────────
 # new-task.sh — Open TaskManager and start the New Task flow
 #
-# If servers are running: brings window to front and opens the modal
-#   via JavaScript (no page reload, no flash)
+# If servers are running: navigates to ?action=new-task and brings to front
 # If not running: starts servers, then opens with ?action=new-task
 # ──────────────────────────────────────────────
 
@@ -21,27 +20,38 @@ FRONTEND_PORT=5173
 TARGET_URL="localhost:$FRONTEND_PORT"
 NEW_TASK_URL="http://$TARGET_URL/?action=new-task"
 
-# ── If servers are running, trigger new-task modal ──
+# ── If servers are running, navigate to new-task and bring to front ──
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
 
-  # Find the tab, call the global JS function, and activate Chrome.
-  # The delay lets Stream Deck release focus before we activate.
-  osascript <<EOF 2>/dev/null
+  # Mirror the exact pattern from the launcher (which works for bring-to-front)
+  # but set the URL to include ?action=new-task before activating
+  RESULT=$(osascript <<EOF 2>&1
 tell application "Google Chrome"
     repeat with w from 1 to (count of windows)
         repeat with t from 1 to (count of tabs of window w)
             if URL of tab t of window w contains "$TARGET_URL" then
                 set active tab index of window w to t
                 set index of window w to 1
-                execute tab t of window w javascript "window.__openNewTask && window.__openNewTask()"
-                delay 0.5
+                set URL of tab t of window w to "$NEW_TASK_URL"
+                delay 1
                 activate
-                return
+                return "ok"
             end if
         end repeat
     end repeat
+    return "not_found"
 end tell
 EOF
+  )
+
+  case "$RESULT" in
+    "ok")
+      ;; # Tab found, navigated, and focused
+    *)
+      # Fallback — open URL directly
+      open "http://$NEW_TASK_URL"
+      ;;
+  esac
 
   exit 0
 fi
@@ -54,7 +64,7 @@ if [ -f "$SCRIPT_DIR/start.sh" ]; then
   for i in $(seq 1 30); do
     if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
       sleep 1
-      open -a "Google Chrome" "$NEW_TASK_URL"
+      osascript -e "tell application \"Google Chrome\" to open location \"$NEW_TASK_URL\"" -e "tell application \"Google Chrome\" to activate"
       exit 0
     fi
     sleep 1
