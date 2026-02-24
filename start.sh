@@ -94,6 +94,9 @@ echo "TaskManager is running at $URL"
 echo "Press Ctrl+C to stop."
 echo ""
 
+# Minimize the Terminal window before opening the app window
+osascript -e 'tell application "Terminal" to set miniaturized of front window to true' 2>/dev/null
+
 # Open in a standalone app window (no address bar, no tabs — looks native)
 # Must call the browser binary directly; "open -a" ignores --app when already running
 OPENED=false
