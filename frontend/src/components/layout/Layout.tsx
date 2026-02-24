@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useSearchParams } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useApp } from '../../context/AppContext';
 import { TaskForm } from '../tasks/TaskForm';
@@ -7,6 +7,16 @@ import { TaskForm } from '../tasks/TaskForm';
 export function Layout() {
   const { state, clearError } = useApp();
   const [showGlobalTaskForm, setShowGlobalTaskForm] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Open new-task modal via URL param: ?action=new-task
+  useEffect(() => {
+    if (searchParams.get('action') === 'new-task') {
+      setShowGlobalTaskForm(true);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Ctrl+N or Cmd+N to open global task creation
