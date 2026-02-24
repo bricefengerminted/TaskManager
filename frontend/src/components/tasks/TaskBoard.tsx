@@ -4,6 +4,7 @@ import type { DropResult } from '@hello-pangea/dnd';
 import type { Task, TaskStatus } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { PRIORITY_COLORS, PRIORITY_LABELS, formatDate, isOverdue } from '../../utils';
+import { Lightbox } from '../Lightbox';
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-slate-100' },
@@ -23,6 +24,8 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
   // Local state so drag-and-drop updates render synchronously
   const [localTasks, setLocalTasks] = useState(tasks);
   useEffect(() => { setLocalTasks(tasks); }, [tasks]);
+
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   // Build column task lists sorted by position
   const getColumnTasks = (status: TaskStatus) =>
@@ -117,10 +120,19 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                             {task.images && task.images.length > 0 && (
                               <div className="flex gap-1 mt-2 overflow-hidden">
                                 {task.images.slice(0, 3).map((url, i) => (
-                                  <img key={i} src={url} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" />
+                                  <img
+                                    key={i}
+                                    src={url}
+                                    alt=""
+                                    className="w-12 h-12 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => { e.stopPropagation(); setLightbox({ images: task.images, index: i }); }}
+                                  />
                                 ))}
                                 {task.images.length > 3 && (
-                                  <div className="w-12 h-12 rounded border border-slate-200 bg-slate-100 flex items-center justify-center text-xs text-slate-500">
+                                  <div
+                                    className="w-12 h-12 rounded border border-slate-200 bg-slate-100 flex items-center justify-center text-xs text-slate-500 cursor-pointer hover:bg-slate-200 transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); setLightbox({ images: task.images, index: 3 }); }}
+                                  >
                                     +{task.images.length - 3}
                                   </div>
                                 )}
@@ -160,6 +172,10 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
           );
         })}
       </div>
+
+      {lightbox && (
+        <Lightbox images={lightbox.images} startIndex={lightbox.index} onClose={() => setLightbox(null)} />
+      )}
     </DragDropContext>
   );
 }

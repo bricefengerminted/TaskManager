@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import type { Task, TaskStatus } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_LABELS, formatDate, isOverdue } from '../../utils';
+import { Lightbox } from '../Lightbox';
 
 interface Props {
   projectId: string;
@@ -12,6 +14,7 @@ const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'done'];
 
 export function TaskList({ projectId, tasks, onEditTask }: Props) {
   const { updateTaskStatus, deleteTask } = useApp();
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   const sorted = [...tasks].sort((a, b) => {
     const si = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
@@ -52,10 +55,21 @@ export function TaskList({ projectId, tasks, onEditTask }: Props) {
                 {task.images && task.images.length > 0 && (
                   <div className="flex gap-1 mt-1">
                     {task.images.slice(0, 4).map((url, i) => (
-                      <img key={i} src={url} alt="" className="w-8 h-8 object-cover rounded border border-slate-200" />
+                      <img
+                        key={i}
+                        src={url}
+                        alt=""
+                        className="w-8 h-8 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={(e) => { e.stopPropagation(); setLightbox({ images: task.images, index: i }); }}
+                      />
                     ))}
                     {task.images.length > 4 && (
-                      <span className="text-xs text-slate-400 self-center ml-1">+{task.images.length - 4}</span>
+                      <span
+                        className="text-xs text-slate-400 self-center ml-1 cursor-pointer hover:text-slate-600"
+                        onClick={(e) => { e.stopPropagation(); setLightbox({ images: task.images, index: 4 }); }}
+                      >
+                        +{task.images.length - 4}
+                      </span>
                     )}
                   </div>
                 )}
@@ -102,6 +116,10 @@ export function TaskList({ projectId, tasks, onEditTask }: Props) {
           ))}
         </tbody>
       </table>
+
+      {lightbox && (
+        <Lightbox images={lightbox.images} startIndex={lightbox.index} onClose={() => setLightbox(null)} />
+      )}
     </div>
   );
 }

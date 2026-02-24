@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Task, TaskStatus, TaskPriority } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../api/client';
+import { Lightbox } from '../Lightbox';
 
 interface Props {
   projectId?: string;
@@ -26,6 +27,7 @@ export function TaskForm({ projectId, task, onClose }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -249,7 +251,8 @@ export function TaskForm({ projectId, task, onClose }: Props) {
                     <img
                       src={url}
                       alt=""
-                      className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                      className="w-16 h-16 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
                     />
                     <button
                       type="button"
@@ -261,6 +264,10 @@ export function TaskForm({ projectId, task, onClose }: Props) {
                   </div>
                 ))}
               </div>
+            )}
+
+            {lightboxIndex !== null && (
+              <Lightbox images={images} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
             )}
           </div>
 
