@@ -1,0 +1,21 @@
+#!/bin/bash
+# TaskManager.app launcher
+# Resolves the project root from the .app bundle location and runs start.sh
+
+APP_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+
+# The .app lives inside the TaskManager repo
+PROJECT_DIR="$APP_DIR"
+
+# If start.sh exists next to the .app, use it
+if [ -f "$PROJECT_DIR/start.sh" ]; then
+  # Run in Terminal so the user can see output and Ctrl+C
+  osascript <<APPLESCRIPT
+    tell application "Terminal"
+      activate
+      do script "cd \"$PROJECT_DIR\" && ./start.sh"
+    end tell
+APPLESCRIPT
+else
+  osascript -e "display alert \"TaskManager\" message \"Could not find start.sh in $PROJECT_DIR. Make sure the TaskManager.app is in your TaskManager project folder.\""
+fi
