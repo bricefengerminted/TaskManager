@@ -65,14 +65,51 @@ npm run install:all
 ### Running the App
 
 ```bash
-# Terminal 1 — from inside TaskManager/
-cd backend && npm run dev
+# Terminal 1 — Backend
+cd ~/TaskManager/backend && npm run dev
 
-# Terminal 2 — from inside TaskManager/ (open a new terminal tab)
-cd frontend && npm run dev
+# Terminal 2 — Frontend (open a new terminal tab)
+cd ~/TaskManager/frontend && npm run dev
 ```
 
 The frontend runs on `http://localhost:5173` (proxies `/api` → backend on port 3001).
+
+---
+
+## Pulling & Applying Updates
+
+When new changes are pushed to the remote branch, follow these steps to update your local copy:
+
+```bash
+cd ~/TaskManager
+
+# 1. Stash any local changes (if needed)
+git stash
+
+# 2. Pull latest changes
+git pull origin claude/task-manager-app-ukyP0
+
+# 3. Install any new dependencies
+cd ~/TaskManager/backend && npm install
+cd ~/TaskManager/frontend && npm install --legacy-peer-deps
+
+# 4. Restart both servers (Ctrl+C in each terminal first)
+# Terminal 1:
+cd ~/TaskManager/backend && npm run dev
+
+# Terminal 2:
+cd ~/TaskManager/frontend && npm run dev
+```
+
+**Notes:**
+- If the pull fails with "local changes would be overwritten", run `git stash` first, then pull again
+- Frontend-only changes hot-reload automatically — you only need to restart the frontend if `npm install` added new packages
+- Backend changes always require a restart of the backend server
+- If you get dependency errors after pulling, delete `node_modules` and reinstall:
+  ```bash
+  cd ~/TaskManager/backend && rm -rf node_modules && npm install
+  cd ~/TaskManager/frontend && rm -rf node_modules && npm install --legacy-peer-deps
+  ```
 
 ---
 
