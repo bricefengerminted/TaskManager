@@ -2,7 +2,7 @@
 # ──────────────────────────────────────────────
 # new-task.sh — Open TaskManager and start the New Task flow
 #
-# If app window exists: bring to front and navigate to ?action=new-task
+# If app window exists: bring to front, trigger modal via JS (no URL change)
 # If servers running but no window: open --app window with ?action=new-task
 # If nothing running: start servers, wait, then open with ?action=new-task
 # ──────────────────────────────────────────────
@@ -20,7 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FRONTEND_PORT=5173
 NEW_TASK_URL="http://localhost:$FRONTEND_PORT/?action=new-task"
 
-# ── Helper: open a new --app window (same approach as start.sh) ──
+# ── Helper: open a new --app window ──
 open_app_window() {
   local url="$1"
   for BROWSER in \
@@ -37,15 +37,18 @@ open_app_window() {
   return 1
 }
 
-# ── Try to find existing window, bring to front, and navigate ──
+# ── Try to find existing window, bring to front, trigger modal via JS ──
+# Uses execute javascript instead of URL change so Chrome doesn't
+# break out of --app mode into a new window.
 RESULT=$(osascript <<'APPLESCRIPT' 2>&1
 tell application "Google Chrome"
     repeat with w in windows
         if name of w contains "TaskManager" then
             set index of w to 1
-            set URL of active tab of w to "http://localhost:5173/?action=new-task"
-            delay 1
+            delay 0.5
             activate
+            delay 0.3
+            execute active tab of w javascript "window.dispatchEvent(new CustomEvent('open-new-task'))"
             return "ok"
         end if
     end repeat
@@ -60,7 +63,7 @@ fi
 
 # ── No existing window found ──
 
-# If servers are running, just open a new --app window with the action
+# If servers are running, just open a new --app window with the action param
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
   open_app_window "$NEW_TASK_URL"
   exit 0
