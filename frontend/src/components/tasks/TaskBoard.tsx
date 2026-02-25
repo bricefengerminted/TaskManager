@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import type { Task, TaskStatus } from '@shared/types';
 import { useApp } from '../../context/AppContext';
-import { PRIORITY_COLORS, PRIORITY_LABELS, formatDate, isOverdue, extractUrls, openUrl } from '../../utils';
+import { PRIORITY_COLORS, PRIORITY_LABELS, formatDate, isOverdue, extractUrls } from '../../utils';
 import { Lightbox } from '../Lightbox';
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
@@ -114,7 +114,7 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                                     <div className="flex items-center gap-1 flex-shrink-0">
                                       {cardUrls.length > 0 && (
                                         <button
-                                          onClick={(e) => { e.stopPropagation(); openUrl(cardUrls[0]); }}
+                                          onClick={(e) => { e.stopPropagation(); window.open(cardUrls[0], '_blank'); }}
                                           className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-indigo-500 transition-all"
                                           title={cardUrls[0]}
                                         >
