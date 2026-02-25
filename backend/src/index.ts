@@ -29,7 +29,46 @@ app.use('/api/projects/:projectId/tasks', tasksRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/uploads', uploadsRouter);
 
-// Open a Slack link directly in Rambox
+/**
+ * Convert https://…slack.com URL → slack:// deep link.
+ * e.g. https://minted.slack.com/archives/D099AL64BCJ/p1771953727946249
+ *    → slack://channel?id=D099AL64BCJ&message=1771953727.946249
+ */
+function toSlackDeepLink(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+
+    // https://app.slack.com/client/TEAM/CHANNEL_OR_DM
+    const clientMatch = parsed.pathname.match(
+      /^\/client\/(T[A-Z0-9]+)\/([A-Z0-9]+)/i,
+    );
+    if (clientMatch) {
+      const [, team, id] = clientMatch;
+      return `slack://channel?team=${team}&id=${id}`;
+    }
+
+    // https://workspace.slack.com/archives/CHANNEL[/pTIMESTAMP]
+    const archiveMatch = parsed.pathname.match(
+      /^\/archives\/([A-Z0-9]+)(?:\/p(\d+))?/i,
+    );
+    if (archiveMatch) {
+      const id = archiveMatch[1];
+      const msgTs = archiveMatch[2];
+      let link = `slack://channel?id=${id}`;
+      if (msgTs) {
+        const ts = msgTs.slice(0, 10) + '.' + msgTs.slice(10);
+        link += `&message=${ts}`;
+      }
+      return link;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Open a Slack link in Rambox
 app.post('/api/open-url', (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string') {
@@ -45,14 +84,21 @@ app.post('/api/open-url', (req, res) => {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  const safeUrl = url.replace(/'/g, "'\\''");
+  // Convert https:// Slack URL to slack:// deep link
+  const deepLink = toSlackDeepLink(url);
+  const targetUrl = deepLink || url;
+  const safeUrl = targetUrl.replace(/'/g, "'\\''");
 
   const isMac = process.platform === 'darwin';
+  // Use open -a to force the slack:// deep link to open in Rambox
+  // specifically, bypassing the native Slack app's protocol handler.
   const cmd = isMac
     ? `open -a Rambox '${safeUrl}'`
     : `xdg-open '${safeUrl}'`;
 
   console.log('Executing:', cmd);
+  console.log('Original URL:', url);
+  console.log('Deep link:', targetUrl);
 
   exec(cmd, (err, stdout, stderr) => {
     if (err) {
