@@ -3,7 +3,7 @@ import type { Task, TaskStatus, TaskPriority } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../api/client';
 import { Lightbox } from '../Lightbox';
-import { extractUrls } from '../../utils';
+
 
 interface Props {
   projectId?: string;
@@ -29,6 +29,8 @@ export function TaskForm({ projectId, task, onClose }: Props) {
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [descFocused, setDescFocused] = useState(false);
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -122,6 +124,43 @@ export function TaskForm({ projectId, task, onClose }: Props) {
     }
   };
 
+  useEffect(() => {
+    if (descFocused && descTextareaRef.current) {
+      descTextareaRef.current.focus();
+      const len = descTextareaRef.current.value.length;
+      descTextareaRef.current.setSelectionRange(len, len);
+    }
+  }, [descFocused]);
+
+  const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+  const renderDescriptionWithLinks = (text: string) => {
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => {
+      if (urlRegex.test(part)) {
+        urlRegex.lastIndex = 0;
+        return (
+          <span key={i}>
+            {part}
+            <a
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center align-baseline ml-0.5 text-indigo-500 hover:text-indigo-700"
+              title={part}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </span>
+        );
+      }
+      urlRegex.lastIndex = 0;
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   const handleDelete = async () => {
     if (!task || !confirm('Delete this task?')) return;
     await deleteTask(task.project_id, task.id);
@@ -172,29 +211,26 @@ export function TaskForm({ projectId, task, onClose }: Props) {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={6}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-            />
-            {extractUrls(description).length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                {extractUrls(description).map((url, i) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 text-xs font-medium transition-colors"
-                  >
-                    <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    Link{extractUrls(description).length > 1 ? ` ${i + 1}` : ''}
-                  </a>
-                ))}
+            {descFocused ? (
+              <textarea
+                ref={descTextareaRef}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onBlur={() => setDescFocused(false)}
+                rows={6}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              />
+            ) : (
+              <div
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('a')) return;
+                  setDescFocused(true);
+                }}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm min-h-[144px] cursor-text whitespace-pre-wrap break-words hover:border-slate-400 transition-colors"
+              >
+                {description ? renderDescriptionWithLinks(description) : (
+                  <span className="text-slate-400">Click to add a description...</span>
+                )}
               </div>
             )}
           </div>
