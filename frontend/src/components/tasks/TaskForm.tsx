@@ -3,6 +3,7 @@ import type { Task, TaskStatus, TaskPriority } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../api/client';
 import { Lightbox } from '../Lightbox';
+import { isSlackUrl, openUrl } from '../../utils';
 
 
 interface Props {
@@ -138,19 +139,30 @@ export function TaskForm({ projectId, task, onClose }: Props) {
     return parts.map((part, i) => {
       if (urlRegex.test(part)) {
         urlRegex.lastIndex = 0;
+        const slack = isSlackUrl(part);
         return (
           <span key={i}>
             {part}
             <a
-              href={part}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center align-baseline ml-0.5 text-indigo-500 hover:text-indigo-700"
-              title={part}
+              href={slack ? undefined : part}
+              target={slack ? undefined : '_blank'}
+              rel={slack ? undefined : 'noopener noreferrer'}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (slack) {
+                  e.preventDefault();
+                  openUrl(part);
+                }
+              }}
+              className={`inline-flex items-center align-baseline ml-0.5 cursor-pointer ${slack ? 'text-purple-500 hover:text-purple-700' : 'text-indigo-500 hover:text-indigo-700'}`}
+              title={slack ? `Open in Rambox: ${part}` : part}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                {slack ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                )}
               </svg>
             </a>
           </span>
