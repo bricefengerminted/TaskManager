@@ -29,3 +29,8 @@ export const STATUS_LABELS = {
   in_progress: 'In Progress',
   done: 'Done',
 };
+
+export function extractUrls(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+  return Array.from(new Set(text.match(urlRegex) ?? []));
+}
