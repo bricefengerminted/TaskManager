@@ -2,9 +2,9 @@
 # ──────────────────────────────────────────────
 # new-task.sh — Open TaskManager and start the New Task flow
 #
-# If servers are running + app window open: navigates to ?action=new-task
-# If servers are running but no app window: opens a new --app window
-# If not running: starts servers, then opens with ?action=new-task
+# If app window exists: bring to front and navigate to ?action=new-task
+# If servers running but no window: open --app window with ?action=new-task
+# If nothing running: start servers, wait, then open with ?action=new-task
 # ──────────────────────────────────────────────
 
 # ── Fix PATH for Stream Deck / Finder context ──
@@ -18,10 +18,9 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FRONTEND_PORT=5173
-TARGET_URL="localhost:$FRONTEND_PORT"
-NEW_TASK_URL="http://$TARGET_URL/?action=new-task"
+NEW_TASK_URL="http://localhost:$FRONTEND_PORT/?action=new-task"
 
-# ── Helper: open a new --app window (same as start.sh does) ──
+# ── Helper: open a new --app window (same approach as start.sh) ──
 open_app_window() {
   local url="$1"
   for BROWSER in \
@@ -32,50 +31,42 @@ open_app_window() {
     "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"; do
     if [ -f "$BROWSER" ]; then
       "$BROWSER" --app="$url" &>/dev/null &
-      return
+      return 0
     fi
   done
-  # No Chromium browser found — fallback to plain open
-  open "$url"
+  return 1
 }
 
-# ── If servers are running, find the app window or open one ──
-if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
-
-  RESULT=$(osascript <<EOF 2>&1
+# ── Try to find existing window, bring to front, and navigate ──
+RESULT=$(osascript <<'APPLESCRIPT' 2>&1
 tell application "Google Chrome"
-    repeat with w from 1 to (count of windows)
-        repeat with t from 1 to (count of tabs of window w)
-            if URL of tab t of window w contains "$TARGET_URL" then
-                set active tab index of window w to t
-                set miniaturized of window w to false
-                set visible of window w to true
-                set index of window w to 1
-                set URL of tab t of window w to "$NEW_TASK_URL"
-                delay 1
-                activate
-                return "ok"
-            end if
-        end repeat
+    repeat with w in windows
+        if name of w contains "TaskManager" then
+            set index of w to 1
+            set URL of active tab of w to "http://localhost:5173/?action=new-task"
+            delay 1
+            activate
+            return "ok"
+        end if
     end repeat
     return "not_found"
 end tell
-EOF
-  )
+APPLESCRIPT
+)
 
-  case "$RESULT" in
-    "ok")
-      ;; # App window found, navigated, and focused
-    *)
-      # No app window open — launch a new --app window with the action URL
-      open_app_window "$NEW_TASK_URL"
-      ;;
-  esac
-
+if [ "$RESULT" = "ok" ]; then
   exit 0
 fi
 
-# ── Servers not running — start them, then open with action param ──
+# ── No existing window found ──
+
+# If servers are running, just open a new --app window with the action
+if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
+  open_app_window "$NEW_TASK_URL"
+  exit 0
+fi
+
+# Servers not running — start them, wait, then open
 if [ -f "$SCRIPT_DIR/start.sh" ]; then
   open -a Terminal "$SCRIPT_DIR/start.sh"
 

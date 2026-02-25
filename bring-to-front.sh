@@ -2,38 +2,27 @@
 # ──────────────────────────────────────────────
 # bring-to-front.sh — Raise the TaskManager window
 #
-# Uses Chrome's AppleScript dictionary to find the exact tab by URL
-# and activate Chrome (bringing the --app window to front).
-# Falls back to `open` if AppleScript fails (e.g. permissions not granted).
+# Finds the Chrome window titled "TaskManager" and brings it to front.
+# Returns exit code 0 if found, 1 if not found.
 # ──────────────────────────────────────────────
 
-FRONTEND_PORT=5173
-TARGET_URL="localhost:$FRONTEND_PORT"
-
-# Try AppleScript to focus the exact tab
-RESULT=$(osascript <<EOF 2>&1
+RESULT=$(osascript <<'APPLESCRIPT' 2>&1
 tell application "Google Chrome"
-    repeat with w from 1 to (count of windows)
-        repeat with t from 1 to (count of tabs of window w)
-            if URL of tab t of window w contains "$TARGET_URL" then
-                set active tab index of window w to t
-                set index of window w to 1
-                delay 0.5
-                activate
-                return "ok"
-            end if
-        end repeat
+    repeat with w in windows
+        if name of w contains "TaskManager" then
+            set index of w to 1
+            delay 0.5
+            activate
+            return "ok"
+        end if
     end repeat
     return "not_found"
 end tell
-EOF
+APPLESCRIPT
 )
 
-case "$RESULT" in
-  "ok")
-    ;; # Tab found and focused
-  *)
-    # AppleScript failed or tab not found — open the URL
-    open "http://$TARGET_URL"
-    ;;
-esac
+if [ "$RESULT" = "ok" ]; then
+  exit 0
+else
+  exit 1
+fi
