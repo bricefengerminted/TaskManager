@@ -35,3 +35,33 @@ export function extractUrls(text: string): string[] {
   return Array.from(new Set(text.match(urlRegex) ?? []));
 }
 
+export function isSlackUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.endsWith('slack.com');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Opens a URL — Slack links are sent to the backend which converts them
+ * to slack:// deep links and opens them via the OS (routed to Rambox).
+ * Everything else opens in a new browser tab.
+ */
+export async function openUrl(url: string): Promise<void> {
+  if (isSlackUrl(url)) {
+    try {
+      const res = await fetch('/api/open-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (res.ok) return;
+      console.warn('Slack deep-link open failed, falling back to browser');
+    } catch {
+      console.warn('Slack deep-link open failed, falling back to browser');
+    }
+  }
+  window.open(url, '_blank');
+}
+
