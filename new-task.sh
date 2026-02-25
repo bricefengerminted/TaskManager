@@ -2,7 +2,7 @@
 # ──────────────────────────────────────────────
 # new-task.sh — Open TaskManager and start the New Task flow
 #
-# If app window exists: bring to front, trigger modal via JS (no URL change)
+# If app window exists: bring to front, then trigger modal via JS
 # If servers running but no window: open --app window with ?action=new-task
 # If nothing running: start servers, wait, then open with ?action=new-task
 # ──────────────────────────────────────────────
@@ -37,33 +37,24 @@ open_app_window() {
   return 1
 }
 
-# ── Try to find existing window, bring to front, trigger modal via JS ──
-# Uses execute javascript instead of URL change so Chrome doesn't
-# break out of --app mode into a new window.
-RESULT=$(osascript <<'APPLESCRIPT' 2>&1
+# ── Step 1: Try to bring existing window to front ──
+if "$SCRIPT_DIR/bring-to-front.sh"; then
+  # Window found and raised. Now trigger the new-task modal.
+  # Try execute javascript (best-effort, requires Chrome's
+  # "Allow JavaScript from Apple Events" setting).
+  osascript <<'APPLESCRIPT' 2>/dev/null
 tell application "Google Chrome"
-    repeat with w in windows
-        if name of w contains "TaskManager" then
-            set index of w to 1
-            delay 0.5
-            activate
-            delay 0.3
-            execute active tab of w javascript "window.dispatchEvent(new CustomEvent('open-new-task'))"
-            return "ok"
-        end if
-    end repeat
-    return "not_found"
+    tell active tab of front window
+        execute javascript "window.__openNewTask && window.__openNewTask()"
+    end tell
 end tell
 APPLESCRIPT
-)
-
-if [ "$RESULT" = "ok" ]; then
   exit 0
 fi
 
-# ── No existing window found ──
+# ── Step 2: No existing window — create one ──
 
-# If servers are running, just open a new --app window with the action param
+# If servers are running, open a new --app window with the action param
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
   open_app_window "$NEW_TASK_URL"
   exit 0
