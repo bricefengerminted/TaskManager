@@ -50,13 +50,20 @@ function toSlackDeepLink(url: string): string | null {
       return `slack://channel?team=${team}&id=${id}`;
     }
 
-    // https://workspace.slack.com/archives/C0ABC5678[/p1234567890]
+    // https://workspace.slack.com/archives/C0ABC5678[/p1771953727946249]
     const archiveMatch = parsed.pathname.match(
-      /^\/archives\/([A-Z0-9]+)/i,
+      /^\/archives\/([A-Z0-9]+)(?:\/p(\d+))?/i,
     );
     if (archiveMatch) {
       const id = archiveMatch[1];
-      return `slack://channel?id=${id}`;
+      const msgTs = archiveMatch[2];
+      // Convert p1771953727946249 → 1771953727.946249 (Slack message timestamp)
+      let link = `slack://channel?id=${id}`;
+      if (msgTs) {
+        const ts = msgTs.slice(0, 10) + '.' + msgTs.slice(10);
+        link += `&message=${ts}`;
+      }
+      return link;
     }
 
     return null;
