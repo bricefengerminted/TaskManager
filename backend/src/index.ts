@@ -29,6 +29,41 @@ app.use('/api/projects/:projectId/tasks', tasksRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/uploads', uploadsRouter);
 
+/**
+ * Convert an https://…slack.com URL to a slack:// deep link so the OS
+ * routes it to whatever app handles the Slack protocol (Rambox, native
+ * Slack, etc.) and navigates straight to the conversation.
+ */
+function toSlackDeepLink(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+
+    // https://app.slack.com/client/T0ABC1234/C0ABC5678
+    const clientMatch = parsed.pathname.match(
+      /^\/client\/(T[A-Z0-9]+)\/([A-Z0-9]+)/i,
+    );
+    if (clientMatch) {
+      const [, team, id] = clientMatch;
+      if (id.startsWith('C')) return `slack://channel?team=${team}&id=${id}`;
+      if (id.startsWith('D')) return `slack://user?team=${team}&id=${id}`;
+      return `slack://channel?team=${team}&id=${id}`;
+    }
+
+    // https://workspace.slack.com/archives/C0ABC5678[/p1234567890]
+    const archiveMatch = parsed.pathname.match(
+      /^\/archives\/([A-Z0-9]+)/i,
+    );
+    if (archiveMatch) {
+      const id = archiveMatch[1];
+      return `slack://channel?id=${id}`;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Open a Slack URL in Rambox instead of the default browser
 app.post('/api/open-url', (req, res) => {
   const { url } = req.body;
@@ -46,20 +81,26 @@ app.post('/api/open-url', (req, res) => {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  // Shell-escape the URL (only allow https slack URLs already validated above)
-  const safeUrl = url.replace(/'/g, "'\\''");
+  // Convert to a slack:// deep link when possible so Rambox (or the
+  // native Slack app) navigates to the actual conversation.
+  const deepLink = toSlackDeepLink(url);
+  const targetUrl = deepLink || url;
+  const safeUrl = targetUrl.replace(/'/g, "'\\''");
 
   const isMac = process.platform === 'darwin';
+  // On macOS: focus Rambox first, then open the deep link so the OS
+  //           routes it to the registered slack:// handler.
+  // On Linux: xdg-open will route slack:// to the registered handler.
   const cmd = isMac
-    ? `open -a Rambox '${safeUrl}'`
-    : `rambox '${safeUrl}' || xdg-open '${safeUrl}'`;
+    ? `open -a Rambox && open '${safeUrl}'`
+    : `xdg-open '${safeUrl}'`;
 
   exec(cmd, (err) => {
     if (err) {
-      console.error('Failed to open URL in Rambox:', err.message);
-      return res.status(500).json({ error: 'Failed to open in Rambox', detail: err.message });
+      console.error('Failed to open Slack link:', err.message);
+      return res.status(500).json({ error: 'Failed to open Slack link', detail: err.message });
     }
-    res.json({ ok: true });
+    res.json({ ok: true, deepLink: !!deepLink });
   });
 });
 
