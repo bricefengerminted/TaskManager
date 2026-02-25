@@ -67,10 +67,9 @@ app.post('/api/open-url', (req, res) => {
 
 // Polled by the JS snippet running inside Rambox's Slack webview.
 //
-// Returns { url, path } where `path` is just the pathname portion.
-// The Rambox snippet should navigate using `path` (not `url`) so that
-// Slack's SPA handles the route internally — avoids the "Launching …"
-// interstitial that appears when you do a full-URL navigation.
+// Returns { url, channelId } so the snippet can try an in-app SPA
+// navigation first (no "Launching …" interstitial) and fall back to
+// a full-URL reload if it can't resolve the internal route.
 //
 // Recommended Rambox custom JS for the Slack service:
 //
@@ -78,7 +77,17 @@ app.post('/api/open-url', (req, res) => {
 //     try {
 //       const r = await fetch('http://localhost:3001/api/slack-nav');
 //       const d = await r.json();
-//       if (d.path) window.location.assign(d.path);
+//       if (!d.url) return;
+//       // Try SPA-friendly navigation using Slack's internal route
+//       if (d.channelId) {
+//         const tm = location.pathname.match(/\/client\/(T[A-Z0-9]+)/);
+//         if (tm) {
+//           location.assign('/client/' + tm[1] + '/' + d.channelId);
+//           return;
+//         }
+//       }
+//       // Fallback: full URL (works but shows brief interstitial)
+//       location.href = d.url;
 //     } catch {}
 //   }, 1500);
 //
@@ -86,14 +95,11 @@ app.get('/api/slack-nav', (_req, res) => {
   if (pendingSlackUrl) {
     const url = pendingSlackUrl;
     pendingSlackUrl = null;
-    try {
-      const parsed = new URL(url);
-      return res.json({ url, path: parsed.pathname + parsed.search + parsed.hash });
-    } catch {
-      return res.json({ url, path: url });
-    }
+    // Extract channel/DM ID from /archives/CXXXXXX or /archives/DXXXXXX
+    const channelMatch = url.match(/\/archives\/([A-Z0-9]+)/);
+    return res.json({ url, channelId: channelMatch?.[1] ?? null });
   }
-  res.json({ url: null, path: null });
+  res.json({ url: null, channelId: null });
 });
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
