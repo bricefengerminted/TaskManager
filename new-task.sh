@@ -39,14 +39,13 @@ open_app_window() {
 
 # ── Step 1: Try to bring existing window to front ──
 if "$SCRIPT_DIR/bring-to-front.sh"; then
-  # Window found and raised. Now trigger the new-task modal by
-  # navigating to ?action=new-task. Since bring-to-front already
-  # made the --app window the front window, this navigates within
-  # that same window (same-origin, no new window).
+  # Trigger the new-task modal via Ctrl+Shift+K keystroke.
+  # This combo is NOT reserved by Chrome, so it reaches the
+  # React keydown handler which opens the modal.
   sleep 0.3
   osascript <<'APPLESCRIPT' 2>/dev/null
-tell application "Google Chrome"
-    set URL of active tab of front window to "http://localhost:5173/?action=new-task"
+tell application "System Events"
+    keystroke "k" using {control down, shift down}
 end tell
 APPLESCRIPT
   exit 0

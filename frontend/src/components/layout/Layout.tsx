@@ -30,6 +30,13 @@ export function Layout() {
   }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ctrl+Shift+K — used by new-task.sh via System Events keystroke
+    // (Chrome does not intercept this combo)
+    if (e.ctrlKey && e.shiftKey && e.key === 'K') {
+      e.preventDefault();
+      setShowGlobalTaskForm(true);
+      return;
+    }
     // Ctrl+N or Cmd+N to open global task creation
     if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
       e.preventDefault();
