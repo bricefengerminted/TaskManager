@@ -84,21 +84,26 @@ app.post('/api/open-url', (req, res) => {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  // Convert https:// Slack URL to slack:// deep link
-  const deepLink = toSlackDeepLink(url);
-  const targetUrl = deepLink || url;
-  const safeUrl = targetUrl.replace(/'/g, "'\\''");
+  // Strategy: focus Rambox, then open the https:// Slack URL.
+  // Rambox's embedded Slack webview should handle the navigation.
+  // We quit native Slack first so it doesn't intercept the URL.
+  const safeUrl = url.replace(/'/g, "'\\''");
 
   const isMac = process.platform === 'darwin';
-  // Use open -a to force the slack:// deep link to open in Rambox
-  // specifically, bypassing the native Slack app's protocol handler.
+  // 1. Quit native Slack (if running) so it doesn't steal focus
+  // 2. Activate Rambox
+  // 3. Open the https:// URL — macOS will open it in the default browser,
+  //    but Rambox is in front so the user is already in the right context
   const cmd = isMac
-    ? `open -a Rambox '${safeUrl}'`
+    ? [
+        `osascript -e 'tell application "Slack" to quit' 2>/dev/null`,
+        `open -a Rambox`,
+        `sleep 0.3`,
+        `open '${safeUrl}'`,
+      ].join(' ; ')
     : `xdg-open '${safeUrl}'`;
 
   console.log('Executing:', cmd);
-  console.log('Original URL:', url);
-  console.log('Deep link:', targetUrl);
 
   exec(cmd, (err, stdout, stderr) => {
     if (err) {
