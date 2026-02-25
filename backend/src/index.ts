@@ -29,50 +29,7 @@ app.use('/api/projects/:projectId/tasks', tasksRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/uploads', uploadsRouter);
 
-/**
- * Convert an https://…slack.com URL to a slack:// deep link so macOS
- * routes it to Rambox (or whatever handles the slack:// protocol).
- *
- * Supported formats:
- *   https://app.slack.com/client/T0ABC1234/C0ABC5678
- *   https://workspace.slack.com/archives/C0ABC5678[/p1234567890]
- */
-function toSlackDeepLink(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-
-    // https://app.slack.com/client/TEAM/CHANNEL_OR_DM
-    const clientMatch = parsed.pathname.match(
-      /^\/client\/(T[A-Z0-9]+)\/([A-Z0-9]+)/i,
-    );
-    if (clientMatch) {
-      const [, team, id] = clientMatch;
-      return `slack://channel?team=${team}&id=${id}`;
-    }
-
-    // https://workspace.slack.com/archives/C0ABC5678[/p1771953727946249]
-    const archiveMatch = parsed.pathname.match(
-      /^\/archives\/([A-Z0-9]+)(?:\/p(\d+))?/i,
-    );
-    if (archiveMatch) {
-      const id = archiveMatch[1];
-      const msgTs = archiveMatch[2];
-      // Convert p1771953727946249 → 1771953727.946249 (Slack message timestamp)
-      let link = `slack://channel?id=${id}`;
-      if (msgTs) {
-        const ts = msgTs.slice(0, 10) + '.' + msgTs.slice(10);
-        link += `&message=${ts}`;
-      }
-      return link;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// Open a Slack link in Rambox via slack:// deep link
+// Open a Slack link directly in Rambox
 app.post('/api/open-url', (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string') {
@@ -88,13 +45,13 @@ app.post('/api/open-url', (req, res) => {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  const deepLink = toSlackDeepLink(url);
-  const targetUrl = deepLink || url;
-  const safeUrl = targetUrl.replace(/'/g, "'\\''");
+  // Open the original https:// URL directly in Rambox — don't use slack://
+  // deep links since those get routed to the native Slack app instead.
+  const safeUrl = url.replace(/'/g, "'\\''");
 
   const isMac = process.platform === 'darwin';
   const cmd = isMac
-    ? `open -a Rambox && open '${safeUrl}'`
+    ? `open -a Rambox '${safeUrl}'`
     : `xdg-open '${safeUrl}'`;
 
   exec(cmd, (err) => {
@@ -102,7 +59,7 @@ app.post('/api/open-url', (req, res) => {
       console.error('Failed to open Slack link:', err.message);
       return res.status(500).json({ error: 'Failed to open Slack link', detail: err.message });
     }
-    res.json({ ok: true, deepLink: !!deepLink, url: targetUrl });
+    res.json({ ok: true });
   });
 });
 
