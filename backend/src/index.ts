@@ -45,14 +45,14 @@ app.post('/api/open-url', (req, res) => {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  // Open the original https:// URL directly in Rambox — don't use slack://
-  // deep links since those get routed to the native Slack app instead.
-  const safeUrl = url.replace(/'/g, "'\\''");
+  // Use AppleScript to tell Rambox to open the URL — this activates Rambox
+  // and uses its internal URL routing to navigate to the Slack conversation.
+  const safeUrl = url.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
   const isMac = process.platform === 'darwin';
   const cmd = isMac
-    ? `open -a Rambox '${safeUrl}'`
-    : `xdg-open '${safeUrl}'`;
+    ? `osascript -e 'tell application "Rambox" to activate' -e 'tell application "Rambox" to open location "${safeUrl}"'`
+    : `xdg-open '${url.replace(/'/g, "'\\''")}'`;
 
   exec(cmd, (err) => {
     if (err) {
