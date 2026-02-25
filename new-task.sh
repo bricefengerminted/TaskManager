@@ -40,13 +40,12 @@ open_app_window() {
 # ── Step 1: Try to bring existing window to front ──
 if "$SCRIPT_DIR/bring-to-front.sh"; then
   # Window found and raised. Now trigger the new-task modal.
-  # Try execute javascript (best-effort, requires Chrome's
-  # "Allow JavaScript from Apple Events" setting).
+  # Trigger the new-task modal by simulating Cmd+N,
+  # which the React app intercepts via keydown handler.
+  sleep 0.3
   osascript <<'APPLESCRIPT' 2>/dev/null
-tell application "Google Chrome"
-    tell active tab of front window
-        execute javascript "window.__openNewTask && window.__openNewTask()"
-    end tell
+tell application "System Events"
+    keystroke "n" using command down
 end tell
 APPLESCRIPT
   exit 0
