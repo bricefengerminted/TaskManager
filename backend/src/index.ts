@@ -45,20 +45,22 @@ app.post('/api/open-url', (req, res) => {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  // Use AppleScript to tell Rambox to open the URL — this activates Rambox
-  // and uses its internal URL routing to navigate to the Slack conversation.
-  const safeUrl = url.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const safeUrl = url.replace(/'/g, "'\\''");
 
   const isMac = process.platform === 'darwin';
   const cmd = isMac
-    ? `osascript -e 'tell application "Rambox" to activate' -e 'tell application "Rambox" to open location "${safeUrl}"'`
-    : `xdg-open '${url.replace(/'/g, "'\\''")}'`;
+    ? `open -a Rambox '${safeUrl}'`
+    : `xdg-open '${safeUrl}'`;
 
-  exec(cmd, (err) => {
+  console.log('Executing:', cmd);
+
+  exec(cmd, (err, stdout, stderr) => {
     if (err) {
       console.error('Failed to open Slack link:', err.message);
-      return res.status(500).json({ error: 'Failed to open Slack link', detail: err.message });
+      console.error('stderr:', stderr);
+      return res.status(500).json({ error: 'Failed to open Slack link', detail: err.message, stderr });
     }
+    console.log('Success. stdout:', stdout, 'stderr:', stderr);
     res.json({ ok: true });
   });
 });
