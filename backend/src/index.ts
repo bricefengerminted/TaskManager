@@ -29,46 +29,13 @@ app.use('/api/projects/:projectId/tasks', tasksRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/uploads', uploadsRouter);
 
-/**
- * Convert https://…slack.com URL → slack:// deep link.
- * e.g. https://minted.slack.com/archives/D099AL64BCJ/p1771953727946249
- *    → slack://channel?id=D099AL64BCJ&message=1771953727.946249
- */
-function toSlackDeepLink(url: string): string | null {
-  try {
-    const parsed = new URL(url);
+// ── Slack navigation via Rambox ────────────────────────────────────
+// Rambox doesn't expose its webviews externally, so we use a polling
+// approach: a small JS snippet injected into Rambox's Slack service
+// polls GET /api/slack-nav for pending URLs and navigates internally.
+let pendingSlackUrl: string | null = null;
 
-    // https://app.slack.com/client/TEAM/CHANNEL_OR_DM
-    const clientMatch = parsed.pathname.match(
-      /^\/client\/(T[A-Z0-9]+)\/([A-Z0-9]+)/i,
-    );
-    if (clientMatch) {
-      const [, team, id] = clientMatch;
-      return `slack://channel?team=${team}&id=${id}`;
-    }
-
-    // https://workspace.slack.com/archives/CHANNEL[/pTIMESTAMP]
-    const archiveMatch = parsed.pathname.match(
-      /^\/archives\/([A-Z0-9]+)(?:\/p(\d+))?/i,
-    );
-    if (archiveMatch) {
-      const id = archiveMatch[1];
-      const msgTs = archiveMatch[2];
-      let link = `slack://channel?id=${id}`;
-      if (msgTs) {
-        const ts = msgTs.slice(0, 10) + '.' + msgTs.slice(10);
-        link += `&message=${ts}`;
-      }
-      return link;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// Open a Slack link in Rambox
+// Called by the TaskManager frontend when user clicks a Slack link
 app.post('/api/open-url', (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string') {
@@ -84,36 +51,28 @@ app.post('/api/open-url', (req, res) => {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  // Strategy: focus Rambox, then open the https:// Slack URL.
-  // Rambox's embedded Slack webview should handle the navigation.
-  // We quit native Slack first so it doesn't intercept the URL.
-  const safeUrl = url.replace(/'/g, "'\\''");
+  // Store the URL for the Rambox Slack webview to pick up
+  pendingSlackUrl = url;
+  console.log('Queued Slack URL for Rambox:', url);
 
-  const isMac = process.platform === 'darwin';
-  // 1. Quit native Slack (if running) so it doesn't steal focus
-  // 2. Activate Rambox
-  // 3. Open the https:// URL — macOS will open it in the default browser,
-  //    but Rambox is in front so the user is already in the right context
-  const cmd = isMac
-    ? [
-        `osascript -e 'tell application "Slack" to quit' 2>/dev/null`,
-        `open -a Rambox`,
-        `sleep 0.3`,
-        `open '${safeUrl}'`,
-      ].join(' ; ')
-    : `xdg-open '${safeUrl}'`;
+  // Also bring Rambox to the foreground
+  if (process.platform === 'darwin') {
+    exec(`open -a Rambox`, (err) => {
+      if (err) console.error('Failed to focus Rambox:', err.message);
+    });
+  }
 
-  console.log('Executing:', cmd);
+  res.json({ ok: true });
+});
 
-  exec(cmd, (err, stdout, stderr) => {
-    if (err) {
-      console.error('Failed to open Slack link:', err.message);
-      console.error('stderr:', stderr);
-      return res.status(500).json({ error: 'Failed to open Slack link', detail: err.message, stderr });
-    }
-    console.log('Success. stdout:', stdout, 'stderr:', stderr);
-    res.json({ ok: true });
-  });
+// Polled by the JS snippet running inside Rambox's Slack webview
+app.get('/api/slack-nav', (_req, res) => {
+  if (pendingSlackUrl) {
+    const url = pendingSlackUrl;
+    pendingSlackUrl = null;
+    return res.json({ url });
+  }
+  res.json({ url: null });
 });
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
