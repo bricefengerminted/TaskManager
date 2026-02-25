@@ -65,14 +65,35 @@ app.post('/api/open-url', (req, res) => {
   res.json({ ok: true });
 });
 
-// Polled by the JS snippet running inside Rambox's Slack webview
+// Polled by the JS snippet running inside Rambox's Slack webview.
+//
+// Returns { url, path } where `path` is just the pathname portion.
+// The Rambox snippet should navigate using `path` (not `url`) so that
+// Slack's SPA handles the route internally — avoids the "Launching …"
+// interstitial that appears when you do a full-URL navigation.
+//
+// Recommended Rambox custom JS for the Slack service:
+//
+//   setInterval(async () => {
+//     try {
+//       const r = await fetch('http://localhost:3001/api/slack-nav');
+//       const d = await r.json();
+//       if (d.path) window.location.assign(d.path);
+//     } catch {}
+//   }, 1500);
+//
 app.get('/api/slack-nav', (_req, res) => {
   if (pendingSlackUrl) {
     const url = pendingSlackUrl;
     pendingSlackUrl = null;
-    return res.json({ url });
+    try {
+      const parsed = new URL(url);
+      return res.json({ url, path: parsed.pathname + parsed.search + parsed.hash });
+    } catch {
+      return res.json({ url, path: url });
+    }
   }
-  res.json({ url: null });
+  res.json({ url: null, path: null });
 });
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
