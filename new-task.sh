@@ -42,7 +42,7 @@ if "$SCRIPT_DIR/bring-to-front.sh"; then
   # Trigger the new-task modal via Ctrl+Shift+K keystroke.
   # This combo is NOT reserved by Chrome, so it reaches the
   # React keydown handler which opens the modal.
-  sleep 0.3
+  sleep 0.2
   osascript <<'APPLESCRIPT' 2>/dev/null
 tell application "System Events"
     keystroke "k" using {control down, shift down}
