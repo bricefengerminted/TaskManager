@@ -51,6 +51,11 @@ export function TaskList({ projectId, tasks, onEditTask }: Props) {
                 <span className={`text-sm font-medium ${task.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                   {task.title}
                 </span>
+                {task.doc_type && (
+                  <span className="ml-2 align-middle text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {task.doc_type}
+                  </span>
+                )}
                 {task.description && <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{task.description}</p>}
                 {task.images && task.images.length > 0 && (
                   <div className="flex gap-1 mt-1">
@@ -71,6 +76,16 @@ export function TaskList({ projectId, tasks, onEditTask }: Props) {
                         +{task.images.length - 4}
                       </span>
                     )}
+                  </div>
+                )}
+                {task.links && task.links.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {task.links.map((lnk, i) => (
+                      <a key={i} href={lnk.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600" title={lnk.url}>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" /></svg>
+                        {lnk.label}
+                      </a>
+                    ))}
                   </div>
                 )}
               </td>

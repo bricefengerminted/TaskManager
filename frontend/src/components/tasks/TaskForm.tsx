@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Task, TaskStatus, TaskPriority } from '@shared/types';
+import type { Task, TaskStatus, TaskPriority, TaskLink } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../api/client';
 import { Lightbox } from '../Lightbox';
@@ -24,6 +24,9 @@ export function TaskForm({ projectId, task, onClose }: Props) {
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'medium');
   const [dueDate, setDueDate] = useState(task?.due_date ?? '');
   const [images, setImages] = useState<string[]>(task?.images ?? []);
+  const [links, setLinks] = useState<TaskLink[]>(task?.links ?? []);
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkLabel, setNewLinkLabel] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -78,6 +81,19 @@ export function TaskForm({ projectId, task, onClose }: Props) {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const addLink = () => {
+    const url = newLinkUrl.trim();
+    if (!url) return;
+    let label = newLinkLabel.trim();
+    if (!label) {
+      try { label = new URL(url).hostname.replace(/^www\./, ''); } catch { label = url; }
+    }
+    setLinks((prev) => [...prev, { type: 'other', label, url }]);
+    setNewLinkUrl('');
+    setNewLinkLabel('');
+  };
+  const removeLink = (index: number) => setLinks((prev) => prev.filter((_, i) => i !== index));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { setError('Title is required'); return; }
@@ -86,9 +102,9 @@ export function TaskForm({ projectId, task, onClose }: Props) {
     try {
       const targetProjectId = selectedProjectId;
       if (isEdit && task) {
-        await updateTask(task.project_id, task.id, { title, description, status, priority, due_date: dueDate || null, images });
+        await updateTask(task.project_id, task.id, { title, description, status, priority, due_date: dueDate || null, images, links });
       } else {
-        await createTask(targetProjectId, { title, description, status, priority, due_date: dueDate || null });
+        await createTask(targetProjectId, { title, description, status, priority, due_date: dueDate || null, links });
         // If images were uploaded during creation, update the task right after
         // (createTask returns the task, but CreateTaskInput doesn't include images)
       }
@@ -109,9 +125,9 @@ export function TaskForm({ projectId, task, onClose }: Props) {
     try {
       const targetProjectId = selectedProjectId;
       if (isEdit && task) {
-        await updateTask(task.project_id, task.id, { title, description, status, priority, due_date: dueDate || null, images });
+        await updateTask(task.project_id, task.id, { title, description, status, priority, due_date: dueDate || null, images, links });
       } else {
-        const created = await createTask(targetProjectId, { title, description, status, priority, due_date: dueDate || null });
+        const created = await createTask(targetProjectId, { title, description, status, priority, due_date: dueDate || null, links });
         if (images.length > 0) {
           await updateTask(targetProjectId, created.id, { images });
         }
@@ -336,6 +352,34 @@ export function TaskForm({ projectId, task, onClose }: Props) {
             {lightboxIndex !== null && (
               <Lightbox images={images} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
             )}
+          </div>
+
+          {/* Links */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Links</label>
+            {task?.doc_type && (
+              <span className="inline-block mb-2 text-xs font-medium px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                {task.doc_type}
+              </span>
+            )}
+            {links.length > 0 && (
+              <ul className="space-y-1 mb-2">
+                {links.map((lnk, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <a href={lnk.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 truncate" title={lnk.url}>
+                      {lnk.label}
+                    </a>
+                    <span className="text-slate-400 text-xs">{lnk.type}</span>
+                    <button type="button" onClick={() => removeLink(i)} className="ml-auto text-red-400 hover:text-red-600 text-xs">Remove</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex gap-2">
+              <input type="url" value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="https://..." className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input type="text" value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} placeholder="Label (optional)" className="w-40 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <button type="button" onClick={addLink} className="px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Add</button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between pt-2">
