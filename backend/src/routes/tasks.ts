@@ -11,10 +11,14 @@ function now() {
   return new Date().toISOString();
 }
 
-// Parse the images JSON column into an array for API responses
-function withParsedImages(row: any) {
+// Parse JSON columns (images, links) into arrays for API responses
+function parseTaskRow(row: any) {
   if (!row) return row;
-  return { ...row, images: JSON.parse(row.images || '[]') };
+  return {
+    ...row,
+    images: JSON.parse(row.images || '[]'),
+    links: JSON.parse(row.links || '[]'),
+  };
 }
 
 // GET /api/projects/:projectId/tasks
@@ -22,11 +26,29 @@ router.get('/', async (req: Request, res: Response) => {
   const project = await db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
-  const rows = await db.select().from(tasks)
+  let rows = await db.select().from(tasks)
     .where(eq(tasks.project_id, req.params.projectId))
     .orderBy(asc(tasks.position))
     .all();
-  return res.json(rows.map(withParsedImages));
+
+  // Optional filters (applied in JS — dataset is single-user small)
+  const docTypeFilter = req.query.doc_type;
+  if (typeof docTypeFilter === 'string' && docTypeFilter.length > 0) {
+    rows = rows.filter((r) => r.doc_type === docTypeFilter);
+  }
+  const dueWithin = req.query.due_within_days;
+  if (dueWithin !== undefined) {
+    const n = parseInt(String(dueWithin), 10);
+    if (!Number.isNaN(n)) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() + n);
+      const cutoffStr = cutoff.toISOString().split('T')[0];
+      // due_date is 'YYYY-MM-DD' — lexical <= is correct for ISO dates; includes overdue
+      rows = rows.filter((r) => r.due_date != null && r.due_date <= cutoffStr);
+    }
+  }
+
+  return res.json(rows.map(parseTaskRow));
 });
 
 // POST /api/projects/:projectId/tasks
@@ -42,6 +64,8 @@ router.post('/', async (req: Request, res: Response) => {
     due_date = null,
     source = 'manual',
     slack_raw = null,
+    links = [],
+    doc_type = null,
   }: CreateTaskInput = req.body;
 
   if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
@@ -64,13 +88,15 @@ router.post('/', async (req: Request, res: Response) => {
     due_date: due_date ?? null,
     position: 0,
     images: '[]',
+    links: JSON.stringify(links ?? []),
+    doc_type: doc_type ?? null,
     source: source as 'manual' | 'slack',
     slack_raw: slack_raw ?? null,
     created_at: ts,
     updated_at: ts,
   };
   await db.insert(tasks).values(task).run();
-  return res.status(201).json(withParsedImages(task));
+  return res.status(201).json(parseTaskRow(task));
 });
 
 // PATCH /api/projects/:projectId/tasks/reorder
@@ -95,7 +121,7 @@ router.patch('/reorder', async (req: Request, res: Response) => {
     .where(eq(tasks.project_id, req.params.projectId))
     .orderBy(asc(tasks.position))
     .all();
-  return res.json(rows.map(withParsedImages));
+  return res.json(rows.map(parseTaskRow));
 });
 
 // GET /api/projects/:projectId/tasks/:taskId
@@ -106,7 +132,7 @@ router.get('/:taskId', async (req: Request, res: Response) => {
     .where(and(eq(tasks.id, req.params.taskId), eq(tasks.project_id, req.params.projectId)))
     .get();
   if (!task) return res.status(404).json({ error: 'Task not found' });
-  return res.json(withParsedImages(task));
+  return res.json(parseTaskRow(task));
 });
 
 // PUT /api/projects/:projectId/tasks/:taskId
@@ -118,7 +144,7 @@ router.put('/:taskId', async (req: Request, res: Response) => {
     .get();
   if (!task) return res.status(404).json({ error: 'Task not found' });
 
-  const { title, description, status, priority, due_date, images }: UpdateTaskInput = req.body;
+  const { title, description, status, priority, due_date, images, links, doc_type }: UpdateTaskInput = req.body;
 
   const updated = {
     ...task,
@@ -128,10 +154,12 @@ router.put('/:taskId', async (req: Request, res: Response) => {
     priority: (priority ?? task.priority) as 'low' | 'medium' | 'high' | 'urgent',
     due_date: due_date !== undefined ? due_date : task.due_date,
     images: images !== undefined ? JSON.stringify(images) : task.images,
+    links: links !== undefined ? JSON.stringify(links) : task.links,
+    doc_type: doc_type !== undefined ? doc_type : task.doc_type,
     updated_at: now(),
   };
   await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
-  return res.json(withParsedImages(updated));
+  return res.json(parseTaskRow(updated));
 });
 
 // DELETE /api/projects/:projectId/tasks/:taskId
@@ -162,7 +190,7 @@ router.patch('/:taskId/status', async (req: Request, res: Response) => {
 
   const updated = { ...task, status, updated_at: now() };
   await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
-  return res.json(withParsedImages(updated));
+  return res.json(parseTaskRow(updated));
 });
 
 export default router;

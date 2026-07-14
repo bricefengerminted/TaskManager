@@ -5,6 +5,12 @@ export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskSource = 'manual' | 'slack';
 
+export interface TaskLink {
+  type: string;
+  label: string;
+  url: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -30,6 +36,8 @@ export interface Task {
   due_date: string | null;
   position: number;
   images: string[];
+  links: TaskLink[];
+  doc_type: string | null;
   source: TaskSource;
   slack_raw: string | null;
   created_at: string;
@@ -55,6 +63,8 @@ export interface CreateTaskInput {
   due_date?: string | null;
   source?: TaskSource;
   slack_raw?: string | null;
+  links?: TaskLink[];
+  doc_type?: string | null;
 }
 
 export interface UpdateTaskInput {
@@ -64,6 +74,8 @@ export interface UpdateTaskInput {
   priority?: TaskPriority;
   due_date?: string | null;
   images?: string[];
+  links?: TaskLink[];
+  doc_type?: string | null;
 }
 
 export interface DashboardStats {
