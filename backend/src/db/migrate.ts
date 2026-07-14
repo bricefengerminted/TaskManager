@@ -37,6 +37,12 @@ export async function runMigrations() {
   if (!colNames.has('position')) {
     await client.execute(`ALTER TABLE tasks ADD COLUMN position INTEGER NOT NULL DEFAULT 0`);
   }
+  if (!colNames.has('links')) {
+    await client.execute(`ALTER TABLE tasks ADD COLUMN links TEXT NOT NULL DEFAULT '[]'`);
+  }
+  if (!colNames.has('doc_type')) {
+    await client.execute(`ALTER TABLE tasks ADD COLUMN doc_type TEXT`);
+  }
 
   // Ensure "General" project always exists
   const ts = new Date().toISOString();

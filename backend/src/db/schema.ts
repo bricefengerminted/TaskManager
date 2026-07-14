@@ -19,6 +19,8 @@ export const tasks = sqliteTable('tasks', {
   due_date: text('due_date'),
   position: integer('position').notNull().default(0),
   images: text('images').notNull().default('[]'),
+  links: text('links').notNull().default('[]'),
+  doc_type: text('doc_type'),
   source: text('source', { enum: ['manual', 'slack'] }).notNull().default('manual'),
   slack_raw: text('slack_raw'),
   created_at: text('created_at').notNull(),
