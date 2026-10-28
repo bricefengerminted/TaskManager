@@ -13,6 +13,7 @@ function groupSidebarProjects(projects: Project[]): SidebarGroup[] {
       p.docs_stage === 'not_pursued' ? '4-not-pursued'
       : p.docs_stage === 'proposal' ? '2-proposals'
       : p.dev_start_half ? `1-${p.dev_start_half}`
+      : p.docs_stage === 'roadmap' ? '1z-unscheduled'
       : '3-other';
     const teams = groups.get(key) ?? new Map<string, Project[]>();
     const team = p.team ?? '';
@@ -20,18 +21,21 @@ function groupSidebarProjects(projects: Project[]): SidebarGroup[] {
     groups.set(key, teams);
   }
   const label = (key: string) =>
-    key === '2-proposals' ? 'Proposals' : key === '3-other' ? 'Other' : key === '4-not-pursued' ? 'Not Pursued' : halfLabel(key.slice(2));
+    key === '2-proposals' ? 'Proposals' : key === '3-other' ? 'Other' : key === '1z-unscheduled' ? 'Unscheduled' : key === '4-not-pursued' ? 'Not Pursued' : halfLabel(key.slice(2));
   return [...groups.entries()]
     .sort(([a], [b]) => {
-      const ra = a.startsWith('1-') ? 1 : 2;
-      const rb = b.startsWith('1-') ? 1 : 2;
+      const rank = (k: string) => (k.startsWith('1-') ? 1 : k === '1z-unscheduled' ? 2 : 3);
+      const ra = rank(a);
+      const rb = rank(b);
       if (ra !== rb) return ra - rb;
       return ra === 1 ? b.localeCompare(a) : a.localeCompare(b);
     })
     .map(([key, teams]) => ({
       key,
       label: label(key),
-      teams: [...teams.entries()].sort(([a], [b]) => a.localeCompare(b)),
+      teams: [...teams.entries()]
+        .map(([t, ps]): [string, Project[]] => [t, [...ps].sort((x, y) => x.name.localeCompare(y.name))])
+        .sort(([a], [b]) => (a === b ? 0 : a === '' ? 1 : b === '' ? -1 : a.localeCompare(b))),
     }));
 }
 
@@ -125,7 +129,7 @@ export function Sidebar() {
             return (
               <div key={g.key} className="mt-3">
                 {g.key === '4-not-pursued' ? (
-                  <button onClick={() => setShowNotPursued(!showNotPursued)} className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <button type="button" aria-expanded={showNotPursued} onClick={() => setShowNotPursued(!showNotPursued)} className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     {showNotPursued ? '▾' : '▸'} {g.label}
                   </button>
                 ) : (

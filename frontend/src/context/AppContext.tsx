@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import type { Project, Task, DashboardStats } from '@shared/types';
+import type { Project, Task, DashboardStats, ProjectDocsInput } from '@shared/types';
 import { api } from '../api/client';
 
 interface AppState {
@@ -67,6 +67,7 @@ interface AppContextValue {
   loadProject: (id: string) => Promise<void>;
   createProject: (name: string, description?: string) => Promise<Project>;
   updateProject: (id: string, data: Parameters<typeof api.updateProject>[1]) => Promise<void>;
+  updateProjectDocs: (id: string, data: ProjectDocsInput) => Promise<Project>;
   archiveProject: (id: string) => Promise<void>;
   restoreProject: (id: string) => Promise<void>;
   loadTasks: (projectId: string) => Promise<void>;
@@ -117,6 +118,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (state.currentProject?.id === id) {
       dispatch({ type: 'SET_CURRENT_PROJECT', payload: updated });
     }
+  }, [state.currentProject]);
+
+  const updateProjectDocs = useCallback(async (id: string, data: ProjectDocsInput) => {
+    const updated = await api.updateProjectDocs(id, data);
+    dispatch({ type: 'UPDATE_PROJECT', payload: updated });
+    if (state.currentProject?.id === id) {
+      dispatch({ type: 'SET_CURRENT_PROJECT', payload: updated });
+    }
+    return updated;
   }, [state.currentProject]);
 
   const loadArchivedProjects = useCallback(async () => {
@@ -227,7 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      state, loadProjects, loadArchivedProjects, loadProject, createProject, updateProject, archiveProject, restoreProject,
+      state, loadProjects, loadArchivedProjects, loadProject, createProject, updateProject, updateProjectDocs, archiveProject, restoreProject,
       loadTasks, createTask, updateTask, updateTaskStatus, reorderTasks, deleteTask, loadDashboard, clearError,
     }}>
       {children}

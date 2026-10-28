@@ -71,3 +71,14 @@ export function halfLabel(half: string | null | undefined): string {
   const m = half?.match(/^(\d{4})-H([12])$/);
   return m ? `H${m[2]}'${m[1].slice(2)}` : 'Unscheduled';
 }
+
+/** Returns the URL only if it is http(s); otherwise null. */
+export function safeHttpUrl(u: string | null | undefined): string | null {
+  if (!u) return null;
+  try {
+    const p = new URL(u).protocol;
+    return p === 'https:' || p === 'http:' ? u : null;
+  } catch {
+    return null;
+  }
+}

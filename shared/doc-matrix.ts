@@ -289,3 +289,5 @@ export function docRow(key: DocKey): DocRow {
   if (!row) throw new Error(`Unknown doc key: ${key}`);
   return row;
 }
+
+export const TEAMS = ['OI', 'WW', 'ABK', 'DP'];

@@ -148,7 +148,7 @@ function DocsSummary() {
       <h3 className="font-semibold text-slate-700 mb-3">Project docs</h3>
       <div className="flex gap-6 text-sm text-slate-600">
         {(['overdue', 'due_soon', 'missing', 'cant_date'] as const).map((s) => (
-          <span key={s}>{DOC_STATUS_META[s].icon} {summary[s]} {DOC_STATUS_META[s].label}</span>
+          <span key={s}><span aria-hidden="true">{DOC_STATUS_META[s].icon}</span> {summary[s]} {DOC_STATUS_META[s].label}</span>
         ))}
       </div>
     </Link>

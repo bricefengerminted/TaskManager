@@ -28,8 +28,8 @@ export function DocStatusChip({ status, compact = false, title }: { status: DocS
       title={title ?? meta.label}
       className={`inline-flex items-center gap-1 border rounded-full text-xs ${compact ? 'px-1.5 py-0.5' : 'px-2 py-0.5'} ${meta.className}`}
     >
-      <span>{meta.icon}</span>
-      {!compact && <span>{meta.label}</span>}
+      <span aria-hidden="true">{meta.icon}</span>
+      {compact ? <span className="sr-only">{meta.label}</span> : <span>{meta.label}</span>}
     </span>
   );
 }

@@ -26,6 +26,7 @@ export function ProjectDetail() {
   }, [projectId, loadProject, loadTasks]);
 
   const project = state.currentProject?.id === projectId ? state.currentProject : null;
+  const docTasksKey = state.tasks.filter((t) => t.doc_key).map((t) => `${t.id}:${t.status}:${t.due_date}`).join('|');
 
   const handleArchive = async () => {
     if (!projectId) return;
@@ -99,7 +100,7 @@ export function ProjectDetail() {
         </div>
       </div>
 
-      {project && <DocsPanel project={project} />}
+      {project && <DocsPanel key={project.id} project={project} refreshKey={docTasksKey} />}
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
