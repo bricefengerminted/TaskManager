@@ -14,7 +14,7 @@ export interface TreePage { id: string; title: string; parentId: string | null; 
 
 export interface DocCheckProject extends DocHealthProject { settings: HubSettings }
 
-export type DocCheckItem = HubItem & { dev_start_half: string | null };
+export type DocCheckItem = HubItem & { dev_start_half: string | null; updated_at?: string | null };
 
 export interface DocCheckInput {
   today: string;
@@ -115,7 +115,8 @@ export function planDocCheck(inp: DocCheckInput): DocCheckOutput {
     }
 
     // Generated sections.
-    if (item) writes.push({ page_id: hubId, section: 'status', content: statusContent(item, inp.today) });
+    // The date shown is when the roadmap item last changed, so an unchanged item isn't rewritten daily.
+    if (item) writes.push({ page_id: hubId, section: 'status', content: statusContent(item, item.updated_at?.slice(0, 10) ?? inp.today) });
     writes.push({ page_id: hubId, section: 'checklist', content: checklistContent(rowsForHub(hubId)) });
     writes.push({
       page_id: hubId,

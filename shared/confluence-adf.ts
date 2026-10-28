@@ -129,14 +129,18 @@ export function sectionContent(d: AdfDoc, section: GeneratedSection): AdfNode[] 
 }
 
 const VOLATILE = new Set(['localId', 'macroId', '_parentId', '__confluenceMetadata']);
+/** Attribute values Confluence fills in on save that mean the same as leaving them out. */
+const DEFAULT_ATTRS: Record<string, unknown> = { colspan: 1, rowspan: 1, layout: 'default' };
 
-/** Strip ids Confluence adds on save, and empty attrs, so two bodies compare by meaning. */
+/** Strip ids and default attrs Confluence adds on save, drop empty attrs and sort keys, so two bodies compare by meaning. */
 export function normalizeForCompare(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(normalizeForCompare);
   if (v && typeof v === 'object') {
     const out: Record<string, unknown> = {};
-    for (const [k, val] of Object.entries(v)) {
+    // Sorted, because Confluence returns keys in a different order than we build them.
+    for (const [k, val] of Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) {
       if (VOLATILE.has(k)) continue;
+      if (k in DEFAULT_ATTRS && val === DEFAULT_ATTRS[k]) continue;
       const n = normalizeForCompare(val);
       if (k === 'attrs' && n && typeof n === 'object' && Object.keys(n).length === 0) continue;
       out[k] = n;

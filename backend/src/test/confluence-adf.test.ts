@@ -1,7 +1,7 @@
 // backend/src/test/confluence-adf.test.ts
 import { describe, it, expect } from 'vitest';
 import {
-  doc, h, p, text, generated, findGenerated, replaceGenerated, adfText, GENERATED, sectionContent, normalizeForCompare,
+  doc, h, p, text, generated, findGenerated, replaceGenerated, adfText, GENERATED, sectionContent, normalizeForCompare, table,
   type AdfDoc,
 } from '../../../shared/confluence-adf';
 
@@ -76,5 +76,20 @@ describe('settings section and change detection', () => {
     const ours = [p(text('a'))];
     const theirs = [{ type: 'paragraph', attrs: { localId: 'x1' }, content: [{ type: 'text', text: 'a' }] }];
     expect(normalizeForCompare(theirs)).toEqual(normalizeForCompare(ours));
+  });
+
+  it('ignores key order', () => {
+    expect(JSON.stringify(normalizeForCompare({ type: 'text', text: 'a' }))).toBe(JSON.stringify(normalizeForCompare({ text: 'a', type: 'text' })));
+  });
+
+  it('treats the table attrs Confluence fills in as defaults', () => {
+    const ours = table(['A'], [[[text('x')]]]);
+    const theirs = JSON.parse(JSON.stringify(ours));
+    theirs.attrs = { layout: 'default', localId: 'z' };
+    for (const row of theirs.content) for (const cell of row.content) cell.attrs = { colspan: 1, rowspan: 1 };
+    expect(normalizeForCompare(theirs)).toEqual(normalizeForCompare(ours));
+    const wide = JSON.parse(JSON.stringify(theirs));
+    wide.content[0].content[0].attrs.colspan = 2;
+    expect(normalizeForCompare(wide)).not.toEqual(normalizeForCompare(ours));
   });
 });

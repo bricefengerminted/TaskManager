@@ -72,6 +72,13 @@ describe('planDocCheck', () => {
     expect(out.flags).toContainEqual(expect.objectContaining({ kind: 'no_hub', project_id: 'p1' }));
   });
 
+  it('dates the status box by the roadmap item, not today', () => {
+    const f = fixture();
+    const out = planDocCheck({ ...f, items: f.items.map((i) => ({ ...i, updated_at: '2026-03-27T17:00:10.083Z' })) });
+    const status = out.writes.find((w) => w.page_id === '201' && w.section === 'status')!;
+    expect(JSON.stringify(status.content)).toContain('updated 2026-03-27');
+  });
+
   it('puts overdue docs in the markdown', () => {
     expect(planDocCheck(fixture()).markdown).toContain('🔴 [IDEA-1] X — Brief/PRD (due 2026-10-01)');
   });
