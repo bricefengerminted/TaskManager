@@ -8,6 +8,7 @@ import tasksRouter from './routes/tasks';
 import dashboardRouter from './routes/dashboard';
 import uploadsRouter from './routes/uploads';
 import roadmapRouter from './routes/roadmap';
+import docsRouter from './routes/docs';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +31,7 @@ app.use('/api/projects/:projectId/tasks', tasksRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/roadmap', roadmapRouter);
+app.use('/api/docs', docsRouter);
 
 // ── Slack navigation via Rambox ────────────────────────────────────
 // Rambox doesn't expose its webviews externally, so we use a polling
