@@ -91,3 +91,11 @@ describe('migrations', () => {
     expect(rows.map((r) => r.doc_key)).toEqual(['prd', null]);
   });
 });
+
+describe('due_computed column', () => {
+  it('exists on tasks', async () => {
+    await runMigrations();
+    const tcols = (await client.execute(`PRAGMA table_info(tasks)`)).rows.map((r: any) => r.name);
+    expect(tcols).toContain('due_computed');
+  });
+});

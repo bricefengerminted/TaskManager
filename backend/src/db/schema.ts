@@ -36,6 +36,8 @@ export const tasks = sqliteTable('tasks', {
   doc_key: text('doc_key'),
   doc_status: text('doc_status'),
   due_rule: text('due_rule'),
+  // Date the doc matrix last computed; due_date differing from it means a manual edit.
+  due_computed: text('due_computed'),
   doc_evidence: text('doc_evidence'),
   source: text('source', { enum: ['manual', 'slack'] }).notNull().default('manual'),
   slack_raw: text('slack_raw'),

@@ -44,7 +44,7 @@ export async function runMigrations() {
     await client.execute(`ALTER TABLE tasks ADD COLUMN doc_type TEXT`);
   }
 
-  for (const name of ['doc_key', 'doc_status', 'due_rule', 'doc_evidence']) {
+  for (const name of ['doc_key', 'doc_status', 'due_rule', 'doc_evidence', 'due_computed']) {
     if (!colNames.has(name)) {
       await client.execute(`ALTER TABLE tasks ADD COLUMN ${name} TEXT`);
     }

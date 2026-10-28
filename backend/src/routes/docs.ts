@@ -75,13 +75,15 @@ function validateEvidence(ev: unknown): string | null {
 // POST /api/docs/apply { project_id, evidence?, today? }
 router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
   const body = isPlainObject(req.body) ? req.body : {};
-  const { project_id, evidence, today: todayParam } = body as Record<string, unknown>;
+  const { project_id, evidence, today: todayParam, dry_run } = body as Record<string, unknown>;
+  if (dry_run !== undefined && typeof dry_run !== 'boolean') return res.status(400).json({ error: 'dry_run must be a boolean' });
   if (typeof project_id !== 'string' || !project_id) return res.status(400).json({ error: 'project_id is required' });
   const evErr = validateEvidence(evidence);
   if (evErr) return res.status(400).json({ error: evErr });
   const today = todayParam === undefined ? todayIso() : todayParam;
   if (!isValidIsoDate(today)) return res.status(400).json({ error: 'today must be a real YYYY-MM-DD date' });
-  const evidenceIn = (evidence ?? {}) as Partial<Record<DocKey, PageEvidenceInput>>;
+  const evidenceIn = (evidence ?? {}) as Partial<Record<DocKey, PageEvidenceInput | null>>;
+  const dryRun = dry_run === true;
   const actor = actorOf(req);
 
   const p = await db.select().from(projects).where(eq(projects.id, project_id)).get();
@@ -93,17 +95,33 @@ router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
     ? await db.select().from(roadmapItems).where(eq(roadmapItems.id, p.roadmap_item_id)).get()
     : undefined;
 
-  const out = await db.transaction(async (tx) => {
+  type Out = {
+    rows: ReturnType<typeof evaluateDocs>;
+    created: { id: string; doc_key: DocKey; due_date: string | null }[];
+    redated: { id: string; doc_key: DocKey; from: string | null; to: string | null }[];
+    completed: { id: string; doc_key: DocKey }[];
+    conflicts: { id: string; doc_key: DocKey; task_due: string | null; matrix_due: string | null; due_rule: string }[];
+    ignored_evidence: string[];
+  };
+  class Rollback extends Error {
+    constructor(public out: Out) { super('dry run rollback'); }
+  }
+
+  const run = () => db.transaction(async (tx): Promise<Out> => {
     const loadDocTasks = () =>
       tx.select().from(tasks).where(and(eq(tasks.project_id, p.id), isNotNull(tasks.doc_key))).all();
 
-    const created: { id: string; doc_key: DocKey; due_date: string | null }[] = [];
-    const redated: { id: string; doc_key: DocKey; from: string | null; to: string | null }[] = [];
-    const completed: { id: string; doc_key: DocKey }[] = [];
+    const created: Out['created'] = [];
+    const redated: Out['redated'] = [];
+    const completed: Out['completed'] = [];
+    const conflicts: Out['conflicts'] = [];
     const ts = new Date().toISOString();
 
     // Pass 1: upsert one task per required row, store evidence, re-date.
-    const required = evaluateDocs(buildContext(p, item), {}, today);
+    // Link evidence is included so link-only rows that are already linked are created as done.
+    const required = evaluateDocs(buildContext(p, item), buildEvidence(p, item, []), today);
+    const requiredKeys = new Set<string>(required.map((r) => r.key));
+    const ignored_evidence = Object.keys(evidenceIn).filter((k) => !requiredKeys.has(k));
     let docTasks = await loadDocTasks();
     const maxPos = await tx.select({ max: sql<number>`coalesce(max(${tasks.position}), -1)` })
       .from(tasks).where(and(eq(tasks.project_id, p.id), eq(tasks.status, 'todo'))).get();
@@ -111,42 +129,65 @@ router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
 
     for (const r of required) {
       let task = docTasks.find((t) => t.doc_key === r.key);
-      const ev = evidenceIn[r.key];
+      const ev = evidenceIn[r.key]; // undefined = leave stored evidence alone
       if (!task) {
         if (r.status === 'waived' && !ev) continue;
         const id = uuidv4();
         const title = `Doc: ${r.label}`;
+        const alreadyDone = docRow(r.key).linkOnly === true && r.status === 'done';
         // drizzle 0.30 can't express a partial-index conflict target, so use a bare
         // ON CONFLICT DO NOTHING (covers idx_tasks_project_doc_key) and re-read on a miss.
         const inserted = await tx.insert(tasks).values({
           id, project_id: p.id, title,
           description: `Required by the doc matrix (${r.due_rule}).`,
-          status: 'todo', priority: 'medium', due_date: r.due, position: position++,
+          status: alreadyDone ? 'done' : 'todo', priority: 'medium', due_date: r.due, position: position++,
           images: '[]', links: '[]', doc_type: r.key.split('.')[0],
-          doc_key: r.key, doc_status: null, due_rule: r.due_rule,
+          doc_key: r.key, doc_status: null, due_rule: r.due_rule, due_computed: r.due,
           doc_evidence: ev ? JSON.stringify(ev) : null,
           source: 'manual', slack_raw: null, created_at: ts, updated_at: ts,
         }).onConflictDoNothing().returning({ id: tasks.id }).all();
         if (inserted.length) {
           created.push({ id, doc_key: r.key, due_date: r.due });
+          if (alreadyDone) completed.push({ id, doc_key: r.key });
           await logActivity({ actor, type: 'doc_task_created', project_id: p.id, task_id: id, task_title: title,
-            summary: `Created "${title}" due ${r.due ?? 'undated'}`, detail: { doc_key: r.key, due_rule: r.due_rule } }, tx);
+            summary: `Created "${title}" due ${r.due ?? 'undated'}${alreadyDone ? ' (already done: link set)' : ''}`,
+            detail: { doc_key: r.key, due_rule: r.due_rule, done: alreadyDone } }, tx);
           continue;
         }
         // Lost a race: another writer created it. Re-read and fall through to update.
         task = (await loadDocTasks()).find((t) => t.doc_key === r.key);
         if (!task) continue;
       }
-      const set: Partial<typeof task> = { due_rule: r.due_rule };
-      if (ev) set.doc_evidence = JSON.stringify(ev);
-      if (task.due_date !== r.due) {
-        set.due_date = r.due;
-        redated.push({ id: task.id, doc_key: r.key, from: task.due_date, to: r.due });
-        await logActivity({ actor, type: 'doc_due_changed', project_id: p.id, task_id: task.id, task_title: task.title,
-          summary: `Due date ${task.due_date ?? 'none'} → ${r.due ?? 'none'} (${r.due_rule})`,
-          detail: { doc_key: r.key, from: task.due_date, to: r.due } }, tx);
+
+      const set: Partial<typeof task> = {};
+      if (task.due_rule !== r.due_rule) set.due_rule = r.due_rule;
+      // Evidence: an object REPLACES the stored evidence wholesale; null clears it.
+      if (ev !== undefined) {
+        const next = ev === null ? null : JSON.stringify(ev);
+        if (next !== task.doc_evidence) set.doc_evidence = next;
       }
-      await tx.update(tasks).set({ ...set, updated_at: ts }).where(eq(tasks.id, task.id)).run();
+      // Due dates: only move a date the matrix itself set (or a missing one). A manual edit is
+      // never overwritten and a null matrix date never blanks an existing date.
+      if (task.due_computed !== r.due) set.due_computed = r.due;
+      if (r.due !== null && task.due_date !== r.due) {
+        if (task.due_date === null || task.due_date === task.due_computed) {
+          set.due_date = r.due;
+          redated.push({ id: task.id, doc_key: r.key, from: task.due_date, to: r.due });
+          await logActivity({ actor, type: 'doc_due_changed', project_id: p.id, task_id: task.id, task_title: task.title,
+            summary: `Due date ${task.due_date ?? 'none'} → ${r.due} (${r.due_rule})`,
+            detail: { doc_key: r.key, from: task.due_date, to: r.due } }, tx);
+        } else {
+          conflicts.push({ id: task.id, doc_key: r.key, task_due: task.due_date, matrix_due: r.due, due_rule: r.due_rule });
+          if (task.due_computed !== r.due) {
+            await logActivity({ actor, type: 'doc_due_conflict', project_id: p.id, task_id: task.id, task_title: task.title,
+              summary: `Kept due ${task.due_date}; matrix says ${r.due} (${r.due_rule})`,
+              detail: { doc_key: r.key, task_due: task.due_date, matrix_due: r.due } }, tx);
+          }
+        }
+      }
+      if (Object.keys(set).length) {
+        await tx.update(tasks).set({ ...set, updated_at: ts }).where(eq(tasks.id, task.id)).run();
+      }
     }
 
     // Pass 2: compute statuses with evidence; persist; complete link-only rows.
@@ -154,21 +195,39 @@ router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
     const rows = evaluateDocs(buildContext(p, item), buildEvidence(p, item, docTasks), today);
     for (const t of docTasks) {
       const r = rows.find((x) => x.key === t.doc_key);
-      const status: DocStatus = r ? r.status : 'waived';
-      const set: Partial<typeof t> = { doc_status: status };
+      const status: DocStatus | null = r ? r.status : null;
+      const set: Partial<typeof t> = {};
+      if (t.doc_status !== status) set.doc_status = status;
       if (r && docRow(r.key).linkOnly && r.status === 'done' && t.status !== 'done') {
         set.status = 'done';
         completed.push({ id: t.id, doc_key: r.key });
         await logActivity({ actor, type: 'doc_task_completed', project_id: p.id, task_id: t.id, task_title: t.title,
           summary: `Completed "${t.title}" (link set)`, detail: { doc_key: r.key, link: r.link } }, tx);
       }
-      await tx.update(tasks).set(set).where(eq(tasks.id, t.id)).run();
+      if (Object.keys(set).length) {
+        await tx.update(tasks).set({ ...set, updated_at: ts }).where(eq(tasks.id, t.id)).run();
+      }
     }
 
-    return { rows, created, redated, completed };
+    const out: Out = { rows, created, redated, completed, conflicts, ignored_evidence };
+    if (dryRun) throw new Rollback(out); // roll back every write, activity included
+    await logActivity({ actor, type: 'docs_applied', project_id: p.id,
+      summary: `Docs applied: ${created.length} created, ${redated.length} re-dated, ${completed.length} completed, ${conflicts.length} conflicts`,
+      detail: {
+        created: created.length, redated: redated.length, completed: completed.length, conflicts: conflicts.length,
+        evidence_keys: Object.keys(evidenceIn), ignored_evidence,
+      } }, tx);
+    return out;
   });
 
-  return res.json(out);
+  let out: Out;
+  try {
+    out = await run();
+  } catch (e) {
+    if (!(e instanceof Rollback)) throw e;
+    out = e.out;
+  }
+  return res.json({ ...out, dry_run: dryRun });
 }));
 
 export default router;
