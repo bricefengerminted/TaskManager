@@ -5,153 +5,153 @@
   "nodes": {
     "root": {
       "title": "Roadmap Projects",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647387154",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647387154"
     },
     "proposals": {
       "title": "Proposals",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646699037",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646699037"
     },
     "proposals:OI": {
       "title": "Proposals · Online Invites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646174747",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646174747"
     },
     "proposals:WW": {
       "title": "Proposals · Wedding Websites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646305809",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646305809"
     },
     "proposals:ABK": {
       "title": "Proposals · Address Book",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647059480",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647059480"
     },
     "not_pursued": {
       "title": "Not Pursued",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646830086",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646830086"
     },
     "not_pursued:OI": {
       "title": "Not Pursued · Online Invites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647256070",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647256070"
     },
     "not_pursued:WW": {
       "title": "Not Pursued · Wedding Websites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646600710",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646600710"
     },
     "not_pursued:ABK": {
       "title": "Not Pursued · Address Book",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647551001",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647551001"
     },
     "unscheduled": {
       "title": "Unscheduled",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646830099",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646830099"
     },
     "unscheduled:DP": {
       "title": "Unscheduled · Digital Products",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646928391",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646928391"
     },
     "unscheduled:OI": {
       "title": "Unscheduled · Online Invites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646633495",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646633495"
     },
     "unscheduled:WW": {
       "title": "Unscheduled · Wedding Websites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646797326",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646797326"
     },
     "year:2026": {
       "title": "2026",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647419919",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647419919"
     },
     "year:2027": {
       "title": "2027",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646862860",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646862860"
     },
     "half:2026-H1": {
       "title": "H1'26",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647026721",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647026721"
     },
     "team_half:2026-H1:OI": {
       "title": "H1'26 · Online Invites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646273046",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646273046"
     },
     "team_half:2026-H1:WW": {
       "title": "H1'26 · Wedding Websites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647583764",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647583764"
     },
     "half:2026-H2": {
       "title": "H2'26",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647682081",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647682081"
     },
     "team_half:2026-H2:ABK": {
       "title": "H2'26 · Address Book",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646207493",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646207493"
     },
     "team_half:2026-H2:OI": {
       "title": "H2'26 · Online Invites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646797339",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646797339"
     },
     "team_half:2026-H2:WW": {
       "title": "H2'26 · Wedding Websites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647321615",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647321615"
     },
     "half:2027-H1": {
       "title": "H1'27",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646600723",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646600723"
     },
     "team_half:2027-H1:OI": {
       "title": "H1'27 · Online Invites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647223314",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647223314"
     },
     "team_half:2027-H1:WW": {
       "title": "H1'27 · Wedding Websites",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646731806",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646731806"
     },
     "hub:id-1783979500412-onwdny226": {
       "title": "[ABK] iOS App Updates — Hub",
