@@ -5,6 +5,7 @@ import { TaskBoard } from '../tasks/TaskBoard';
 import { TaskList } from '../tasks/TaskList';
 import { TaskForm } from '../tasks/TaskForm';
 import { SlackPasteModal } from '../slack/SlackPasteModal';
+import { DocsPanel } from '../docs/DocsPanel';
 
 type ViewMode = 'board' | 'list';
 
@@ -97,6 +98,8 @@ export function ProjectDetail() {
           </div>
         </div>
       </div>
+
+      {project && <DocsPanel project={project} />}
 
       {/* Content */}
       <div className="flex-1 overflow-auto">

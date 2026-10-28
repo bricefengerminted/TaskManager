@@ -62,6 +62,16 @@ export const api = {
     return res.json();
   },
 
+  // Docs
+  getDocHealth: (params: { half?: string; team?: string; status?: string; project_id?: string } = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v) as [string, string][]
+    ).toString();
+    return request<import('@shared/types').DocHealthResponse>(`/docs/health${qs ? `?${qs}` : ''}`);
+  },
+  updateProjectDocs: (id: string, data: import('@shared/types').ProjectDocsInput) =>
+    request<import('@shared/types').Project>(`/projects/${id}/docs`, { method: 'PATCH', body: JSON.stringify(data) }),
+
   // Dashboard
   getDashboard: () => request<import('@shared/types').DashboardStats>('/dashboard'),
 };

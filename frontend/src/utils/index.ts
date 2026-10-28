@@ -65,3 +65,9 @@ export async function openUrl(url: string): Promise<void> {
   window.open(url, '_blank');
 }
 
+
+/** "2026-H2" → "H2'26"; anything else → "Unscheduled". */
+export function halfLabel(half: string | null | undefined): string {
+  const m = half?.match(/^(\d{4})-H([12])$/);
+  return m ? `H${m[2]}'${m[1].slice(2)}` : 'Unscheduled';
+}
