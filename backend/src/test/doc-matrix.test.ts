@@ -176,8 +176,8 @@ describe('review fixes', () => {
   it('does not treat draft URLs as published', () => {
     const draft = 'https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=222';
     const r = byKey(evaluateDocs(modular, { prd: { link: draft, task_done: true }, jira_epic: { link: draft } }, TODAY));
-    expect(r.prd.status).not.toBe('done');
-    expect(r.jira_epic.status).not.toBe('done');
+    expect(r.prd.status).toBe('overdue');
+    expect(r.jira_epic.status).toBe('overdue');
   });
 
   it('parses page ids for mismatch', () => {
@@ -237,5 +237,29 @@ describe('review fixes', () => {
     const ms = (today: string) => byKey(evaluateDocs(modular, {}, today)).metrics_snapshot.status; // due 11-24, phase not reached
     expect(ms('2026-10-26')).toBe('inactive');
     expect(ms('2026-10-27')).toBe('missing');
+  });
+
+  it('rejects impossible dates', () => {
+    for (const bad of ['2026-13-45', '2026-02-30']) {
+      const ctx = mk({ phases: { ...modular.phases, build: { start: bad, end: '2026-11-10' } } });
+      expect(() => evaluateDocs(ctx, {}, TODAY)).not.toThrow();
+      expect(byKey(evaluateDocs(ctx, {}, TODAY)).prd.status).toBe('cant_date');
+    }
+  });
+
+  it('shows a draft link inside the due-soon window as draft', () => {
+    const link = 'https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=5';
+    expect(byKey(evaluateDocs(modular, { release_notes: { link } }, TODAY)).release_notes.status).toBe('draft');
+  });
+
+  it('only lists needs for cant_date rows', () => {
+    const ctx = mk({ stage: 'wont-do', phases: {}, entered_scope_at: null });
+    const r = byKey(evaluateDocs(ctx, {}, TODAY));
+    expect(r.prd.status).toBe('waived');
+    expect(r.prd.needs).toEqual([]);
+  });
+
+  it('is overdue the day after the due date', () => {
+    expect(byKey(evaluateDocs(modular, {}, '2026-11-11')).release_notes.status).toBe('overdue');
   });
 });

@@ -163,14 +163,20 @@ export function describeRule(rule: DueRule): string {
   return `${ANCHOR_LABEL[rule.anchor]} ${sign}${amount}`;
 }
 
-function anchorDate(c: DocContext, anchor: Anchor): string | null {
-  if (anchor === 'entered_scope') {
-    const v = c.entered_scope_at;
-    return v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null;
+function validDate(v: string | null | undefined): string | null {
+  if (!v || !/^\d{4}-\d{2}-\d{2}/.test(v)) return null;
+  const d = v.slice(0, 10);
+  try {
+    return addDays(d, 0) === d ? d : null;
+  } catch {
+    return null;
   }
+}
+
+function anchorDate(c: DocContext, anchor: Anchor): string | null {
+  if (anchor === 'entered_scope') return validDate(c.entered_scope_at);
   const [phase, edge] = anchor.split('.') as [PhaseKey, 'start' | 'end'];
-  const v = c.phases[phase]?.[edge];
-  return v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null;
+  return validDate(c.phases[phase]?.[edge]);
 }
 
 export function computeDue(row: DocRow, c: DocContext): { due: string | null; rule: DueRule } {
@@ -236,9 +242,9 @@ function rowStatus(row: DocRow, c: DocContext, ev: DocEvidence, due: string | nu
   if (!isActive(row, c, due, today)) return 'inactive';
   if (today > due) return 'overdue';
   if (published) return 'review';
-  if (ev.page_url && !ev.published) return 'draft';
+  if (exists) return 'draft';
   if (today >= addDays(due, -14)) return 'due_soon';
-  return exists ? 'draft' : 'missing';
+  return 'missing';
 }
 
 export function evaluateDocs(
@@ -254,16 +260,18 @@ export function evaluateDocs(
     const ev = evidence[row.key] ?? {};
     const proposal = c.stage === null;
     const { due, rule } = proposal ? { due: null, rule: row.due } : computeDue(row, c);
+    const status = rowStatus(row, c, ev, due, t);
     results.push({
       key: row.key,
       label: row.label,
       phase: row.phase,
       due,
       due_rule: proposal ? 'Before roadmap' : describeRule(rule),
-      needs: !proposal && due === null
-        ? [row.due, row.fallback].filter((x): x is DueRule => Boolean(x)).map((x) => ANCHOR_LABEL[x.anchor])
-        : [],
-      status: rowStatus(row, c, ev, due, t),
+      needs:
+        status === 'cant_date'
+          ? [row.due, row.fallback].filter((x): x is DueRule => Boolean(x)).map((x) => ANCHOR_LABEL[x.anchor])
+          : [],
+      status,
       mismatch: isMismatch(ev),
       link: ev.link ?? ev.page_url ?? null,
     });
