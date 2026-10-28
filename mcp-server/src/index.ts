@@ -10,7 +10,7 @@ const API_BASE = process.env.TASKMANAGER_API_URL || "http://localhost:3001/api";
 
 async function api(path: string, options?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Actor": "claude" },
     ...options,
   });
   if (!res.ok) {
@@ -19,6 +19,14 @@ async function api(path: string, options?: RequestInit) {
   }
   if (res.status === 204) return null;
   return res.json();
+}
+
+function ok(data: unknown) {
+  return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+}
+
+function fail(e: any) {
+  return { content: [{ type: "text" as const, text: `Error: ${e.message}` }], isError: true };
 }
 
 // --- MCP Server ---
@@ -312,6 +320,132 @@ server.tool(
       };
     } catch (e: any) {
       return { content: [{ type: "text" as const, text: `Error: ${e.message}` }], isError: true };
+    }
+  }
+);
+
+// --- Doc system ---
+
+server.tool(
+  "sync_roadmap",
+  "Push a roadmap snapshot into TaskManager. Pass the `items` array exactly as returned by the roadmap MCP's list_roadmap_items. Returns suggested project matches (never applied automatically) and unlinked items.",
+  { items: z.array(z.record(z.string(), z.any())).describe("Items from roadmap list_roadmap_items") },
+  async ({ items }) => {
+    try {
+      return ok(await api("/roadmap/sync", { method: "POST", body: JSON.stringify({ items }) }));
+    } catch (e: any) {
+      return fail(e);
+    }
+  }
+);
+
+server.tool(
+  "get_doc_health",
+  "Doc status for every tracked project: required docs, due dates, statuses (done, draft, due_soon, overdue, missing, waived, cant_date, inactive) and flags.",
+  {
+    half: z.string().optional().describe('e.g. "2026-H2"'),
+    team: z.string().optional().describe("OI, WW, ABK or DP"),
+    status: z.string().optional().describe("Only projects with at least one row in this status"),
+    project_id: z.string().optional(),
+  },
+  async (params) => {
+    try {
+      const qs = new URLSearchParams(
+        Object.entries(params).filter(([, v]) => v) as [string, string][]
+      ).toString();
+      return ok(await api(`/docs/health${qs ? `?${qs}` : ""}`));
+    } catch (e: any) {
+      return fail(e);
+    }
+  }
+);
+
+server.tool(
+  "apply_doc_check",
+  "Apply the doc check to one project: creates missing doc tasks, re-dates them from roadmap dates, stores Confluence page evidence, completes link-only docs. Safe to repeat.",
+  {
+    project_id: z.string(),
+    evidence: z
+      .record(
+        z.string(),
+        z.object({
+          page_url: z.string().nullable().optional(),
+          published: z.boolean().optional(),
+          results_filled: z.boolean().optional(),
+        })
+      )
+      .optional()
+      .describe("Per doc_key: the hub child page found in Confluence; null clears stored evidence"),
+    dry_run: z
+      .boolean()
+      .optional()
+      .describe("Return planned changes without writing anything. Task ids in a dry-run `created` list don't exist."),
+  },
+  async ({ project_id, evidence, dry_run }) => {
+    try {
+      return ok(await api("/docs/apply", { method: "POST", body: JSON.stringify({ project_id, evidence, dry_run }) }));
+    } catch (e: any) {
+      return fail(e);
+    }
+  }
+);
+
+server.tool(
+  "resolve_due_conflict",
+  "Resolve a doc task whose due date differs from the doc matrix (listed in apply_doc_check `conflicts`). accept = use the matrix date; keep = pin the current date so it is never re-dated. Only call with the user's decision.",
+  {
+    task_id: z.string(),
+    action: z.enum(["accept", "keep"]),
+  },
+  async ({ task_id, action }) => {
+    try {
+      return ok(await api("/docs/resolve-conflict", { method: "POST", body: JSON.stringify({ task_id, action }) }));
+    } catch (e: any) {
+      return fail(e);
+    }
+  }
+);
+
+server.tool(
+  "set_project_decision",
+  "Record the one-pager decision for a proposal. no_go stops all later doc requirements; parked needs revisit_by.",
+  {
+    project_id: z.string(),
+    decision: z.enum(["go", "no_go", "parked"]),
+    reason: z.string().describe("One-line reason"),
+    revisit_by: z.string().optional().describe("YYYY-MM-DD, required for parked"),
+  },
+  async ({ project_id, decision, reason, revisit_by }) => {
+    try {
+      return ok(await api(`/projects/${project_id}/docs`, {
+        method: "PATCH",
+        body: JSON.stringify({ decision, decision_reason: reason, revisit_by }),
+      }));
+    } catch (e: any) {
+      return fail(e);
+    }
+  }
+);
+
+server.tool(
+  "link_project",
+  "Set a project's doc-system fields: roadmap item link, hub/one-pager URLs, team, doc mode, customer-facing flag, waivers, docs_stage. Only link a roadmap item after the user has approved that match.",
+  {
+    project_id: z.string(),
+    roadmap_item_id: z.string().nullable().optional(),
+    docs_stage: z.enum(["proposal", "roadmap", "not_pursued"]).nullable().optional(),
+    hub_url: z.string().nullable().optional(),
+    one_pager_url: z.string().nullable().optional(),
+    team: z.string().nullable().optional(),
+    doc_mode: z.enum(["full", "one_pager_only"]).optional(),
+    customer_facing: z.boolean().optional(),
+    waivers: z.record(z.string(), z.string()).optional().describe("doc_key → reason"),
+  },
+  async ({ project_id, ...fields }) => {
+    try {
+      return ok(await api(`/projects/${project_id}/docs`, { method: "PATCH", body: JSON.stringify(fields) }));
+    } catch (e: any) {
+      return fail(e);
     }
   }
 );
