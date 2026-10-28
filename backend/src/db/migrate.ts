@@ -44,6 +44,81 @@ export async function runMigrations() {
     await client.execute(`ALTER TABLE tasks ADD COLUMN doc_type TEXT`);
   }
 
+  for (const name of ['doc_key', 'doc_status', 'due_rule', 'doc_evidence']) {
+    if (!colNames.has(name)) {
+      await client.execute(`ALTER TABLE tasks ADD COLUMN ${name} TEXT`);
+    }
+  }
+
+  const pcols = await client.execute(`PRAGMA table_info(projects)`);
+  const pcolNames = new Set(pcols.rows.map((r: any) => r.name));
+  const projectCols: [string, string][] = [
+    ['roadmap_item_id', 'TEXT'],
+    ['team', 'TEXT'],
+    ['docs_stage', 'TEXT'],
+    ['decision', 'TEXT'],
+    ['decision_date', 'TEXT'],
+    ['decision_reason', 'TEXT'],
+    ['revisit_by', 'TEXT'],
+    ['doc_mode', "TEXT NOT NULL DEFAULT 'full'"],
+    ['customer_facing', 'INTEGER NOT NULL DEFAULT 0'],
+    ['waivers', "TEXT NOT NULL DEFAULT '{}'"],
+    ['hub_url', 'TEXT'],
+    ['one_pager_url', 'TEXT'],
+  ];
+  for (const [name, ddl] of projectCols) {
+    if (!pcolNames.has(name)) {
+      await client.execute(`ALTER TABLE projects ADD COLUMN ${name} ${ddl}`);
+    }
+  }
+
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS roadmap_items (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      team_id TEXT, team_name TEXT, parent_team_id TEXT,
+      stage TEXT NOT NULL, status TEXT, pm_name TEXT, jira_key TEXT,
+      phases TEXT NOT NULL DEFAULT '{}',
+      dev_start_half TEXT,
+      links TEXT NOT NULL DEFAULT '{}',
+      hidden INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT,
+      first_seen_at TEXT NOT NULL,
+      synced_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS activity (
+      id TEXT PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL DEFAULT 'user',
+      type TEXT NOT NULL, task_id TEXT, project_id TEXT, task_title TEXT,
+      summary TEXT NOT NULL, detail TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(created_at);
+  `);
+
+  // Backfill doc_key on existing lifecycle tasks (one task per project per key).
+  const TITLE_TO_DOC_KEY: [string, string][] = [
+    ['Write PRD', 'prd'],
+    ['Create experimentation doc', 'experiment_brief.plan'],
+    ['Write release notes', 'release_notes'],
+    ['2-week metrics check', 'metrics_snapshot'],
+    ['Final results readout', 'experiment_brief.results'],
+  ];
+  for (const [title, key] of TITLE_TO_DOC_KEY) {
+    await client.execute({
+      sql: `UPDATE tasks SET doc_key = ?
+            WHERE id IN (
+              SELECT t.id FROM tasks t
+              WHERE t.doc_key IS NULL AND t.title = ?
+                AND NOT EXISTS (SELECT 1 FROM tasks t2 WHERE t2.project_id = t.project_id AND t2.doc_key = ?)
+              GROUP BY t.project_id
+            )`,
+      args: [key, title, key],
+    });
+  }
+
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_project_doc_key ON tasks(project_id, doc_key) WHERE doc_key IS NOT NULL`
+  );
+
   // Ensure "General" project always exists
   const ts = new Date().toISOString();
   await client.execute({
