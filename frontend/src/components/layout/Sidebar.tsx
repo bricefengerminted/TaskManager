@@ -1,11 +1,65 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useEffect, useState } from 'react';
+import type { Project } from '@shared/types';
+import { halfLabel } from '../../utils';
+
+type SidebarGroup = { key: string; label: string; teams: [string, Project[]][] };
+
+function groupSidebarProjects(projects: Project[]): SidebarGroup[] {
+  const groups = new Map<string, Map<string, Project[]>>();
+  for (const p of projects) {
+    const key =
+      p.docs_stage === 'not_pursued' ? '4-not-pursued'
+      : p.docs_stage === 'proposal' ? '2-proposals'
+      : p.dev_start_half ? `1-${p.dev_start_half}`
+      : '3-other';
+    const teams = groups.get(key) ?? new Map<string, Project[]>();
+    const team = p.team ?? '';
+    teams.set(team, [...(teams.get(team) ?? []), p]);
+    groups.set(key, teams);
+  }
+  const label = (key: string) =>
+    key === '2-proposals' ? 'Proposals' : key === '3-other' ? 'Other' : key === '4-not-pursued' ? 'Not Pursued' : halfLabel(key.slice(2));
+  return [...groups.entries()]
+    .sort(([a], [b]) => {
+      const ra = a.startsWith('1-') ? 1 : 2;
+      const rb = b.startsWith('1-') ? 1 : 2;
+      if (ra !== rb) return ra - rb;
+      return ra === 1 ? b.localeCompare(a) : a.localeCompare(b);
+    })
+    .map(([key, teams]) => ({
+      key,
+      label: label(key),
+      teams: [...teams.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    }));
+}
+
+function ProjectLink({ project, active }: { project: Project; active: boolean }) {
+  return (
+    <Link
+      to={`/projects/${project.id}`}
+      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+        active ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+      }`}
+    >
+      <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
+      <span className="truncate">{project.name}</span>
+      {project.task_counts && project.task_counts.todo + project.task_counts.in_progress > 0 && (
+        <span className="ml-auto text-xs bg-slate-700 text-slate-300 rounded-full px-1.5 py-0.5">
+          {project.task_counts.todo + project.task_counts.in_progress}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export function Sidebar() {
   const { state, loadProjects, loadArchivedProjects, restoreProject } = useApp();
   const location = useLocation();
   const [showArchived, setShowArchived] = useState(false);
+  const [showNotPursued, setShowNotPursued] = useState(false);
+  const groups = groupSidebarProjects(state.projects);
 
   useEffect(() => {
     loadProjects();
@@ -43,6 +97,17 @@ export function Sidebar() {
             </svg>
             Dashboard
           </Link>
+          <Link
+            to="/docs"
+            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location.pathname === '/docs' ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Docs
+          </Link>
         </div>
 
         <div className="px-3 mt-4">
@@ -55,25 +120,32 @@ export function Sidebar() {
             </Link>
           </div>
 
-          {state.projects.map((project) => (
-            <Link
-              key={project.id}
-              to={`/projects/${project.id}`}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                location.pathname.startsWith(`/projects/${project.id}`)
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
-              <span className="truncate">{project.name}</span>
-              {project.task_counts && project.task_counts.todo + project.task_counts.in_progress > 0 && (
-                <span className="ml-auto text-xs bg-slate-700 text-slate-300 rounded-full px-1.5 py-0.5">
-                  {project.task_counts.todo + project.task_counts.in_progress}
-                </span>
-              )}
-            </Link>
-          ))}
+          {groups.map((g) => {
+            const collapsed = g.key === '4-not-pursued' && !showNotPursued;
+            return (
+              <div key={g.key} className="mt-3">
+                {g.key === '4-not-pursued' ? (
+                  <button onClick={() => setShowNotPursued(!showNotPursued)} className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    {showNotPursued ? '▾' : '▸'} {g.label}
+                  </button>
+                ) : (
+                  <p className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{g.label}</p>
+                )}
+                {!collapsed && g.teams.map(([team, projects]) => (
+                  <div key={team || 'none'}>
+                    {team && <p className="px-3 mt-1 text-[11px] text-slate-500">{team}</p>}
+                    {projects.map((project) => (
+                      <ProjectLink
+                        key={project.id}
+                        project={project}
+                        active={location.pathname.startsWith(`/projects/${project.id}`)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
 
           {state.projects.length === 0 && !state.loading && (
             <p className="px-3 text-xs text-slate-500 mt-2">No projects yet</p>

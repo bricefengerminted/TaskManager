@@ -1,6 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import type { DocHealthResponse } from '@shared/types';
+import { api } from '../../api/client';
+import { DOC_STATUS_META } from '../docs/DocStatusChip';
 
 export function Dashboard() {
   const { state, loadDashboard } = useApp();
@@ -34,6 +37,8 @@ export function Dashboard() {
         <StatCard label="Completed" value={`${donePercent}%`} color="green" />
         <StatCard label="Overdue" value={dashboard.overdue_tasks} color={dashboard.overdue_tasks > 0 ? 'red' : 'slate'} />
       </div>
+
+      <DocsSummary />
 
       {/* Task status breakdown */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
@@ -127,5 +132,25 @@ function StatusBar({ label, count, total, color }: { label: string; count: numbe
         <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
       </div>
     </div>
+  );
+}
+
+function DocsSummary() {
+  const [summary, setSummary] = useState<DocHealthResponse['summary'] | null>(null);
+
+  useEffect(() => {
+    api.getDocHealth().then((r) => setSummary(r.summary)).catch(() => setSummary(null));
+  }, []);
+
+  if (!summary) return null;
+  return (
+    <Link to="/docs" className="block bg-white rounded-xl border border-slate-200 p-5 mb-6 hover:border-indigo-300 transition-colors">
+      <h3 className="font-semibold text-slate-700 mb-3">Project docs</h3>
+      <div className="flex gap-6 text-sm text-slate-600">
+        {(['overdue', 'due_soon', 'missing', 'cant_date'] as const).map((s) => (
+          <span key={s}>{DOC_STATUS_META[s].icon} {summary[s]} {DOC_STATUS_META[s].label}</span>
+        ))}
+      </div>
+    </Link>
   );
 }
