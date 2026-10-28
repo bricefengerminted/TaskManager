@@ -9,3 +9,5 @@ build/
 .env.local
 .DS_Store
 .logs/
+docs/confluence/inventory/
+docs/confluence/tree-plan.json
