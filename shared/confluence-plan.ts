@@ -83,7 +83,7 @@ export function buildPlan(inp: PlanInputs): Plan {
   const collisions = findTitleCollisions(nodes, inp.inventory.existing);
   const migration = buildMigrationList({
     nodes, items: inp.items, collisions,
-    prdMatches: proposePrdMatches(inp.inventory.prdPages, inp.items),
+    prdMatches: proposePrdMatches(inp.inventory.prdPages, inp.items, Object.fromEntries(inp.items.map((i) => [i.id, i.links.prd ?? null]))),
     legacy: inp.inventory.legacy,
     adoptedTitles: inp.inventory.adoptedTitles,
   });

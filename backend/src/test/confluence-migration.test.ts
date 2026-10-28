@@ -43,6 +43,30 @@ describe('proposePrdMatches', () => {
     expect(m.reason).toBe('blocked');
   });
 
+  it('prefers an existing roadmap PRD link over a name match', () => {
+    const iter: TreeItem = { id: 'oi-iter', name: 'OI - Messaging Center - Iteration', team_name: 'Online Invites', dev_start_half: '2026-H2', stage: 'build' };
+    const [m] = proposePrdMatches(
+      [{ id: '3748462617', title: 'Brief/PRD: OI Messaging Center / Digital Products / TBD' }],
+      [...items, iter],
+      { 'oi-iter': 'https://minted.atlassian.net/wiki/spaces/PM/pages/3748462617/Brief+PRD+OI+Messaging+Center' },
+    );
+    expect(m).toMatchObject({ itemId: 'oi-iter', reason: 'linked' });
+  });
+
+  it('never follows a roadmap link for a blocked page', () => {
+    const [m] = proposePrdMatches(
+      [{ id: '4286087221', title: 'PRD — OI: On-Canvas Editing' }],
+      items,
+      { 'ww-oce': 'https://minted.atlassian.net/wiki/spaces/PM/pages/4286087221/PRD+OI+On-Canvas+Editing' },
+    );
+    expect(m.itemId).toBeNull();
+  });
+
+  it('blocks the real On-Canvas PRD title too', () => {
+    const [m] = proposePrdMatches([{ id: '4286087221', title: 'PRD — OI: On-Canvas Editing' }], items);
+    expect(m).toMatchObject({ itemId: null, reason: 'blocked' });
+  });
+
   it('respects the page prefix', () => {
     const [m] = proposePrdMatches([{ id: '3', title: 'OI: On-Canvas Editing' }], items);
     expect(m).toMatchObject({ itemId: null, reason: 'none' });

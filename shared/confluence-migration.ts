@@ -31,11 +31,20 @@ export function normalizeTitle(title: string): { prefix: string | null; core: st
 export interface PrdMatch {
   page: PageRef;
   itemId: string | null;
-  reason: 'exact' | 'contains' | 'ambiguous' | 'none' | 'blocked';
+  reason: 'linked' | 'exact' | 'contains' | 'ambiguous' | 'none' | 'blocked';
   candidates: string[];
 }
 
-export function proposePrdMatches(pages: PageRef[], items: TreeItem[]): PrdMatch[] {
+/** Page id in a Confluence URL (/pages/<id>/… or ?pageId=<id>), or null. */
+export function confluencePageId(url: string | null | undefined): string | null {
+  return url?.match(/\/pages\/(\d+)/)?.[1] ?? url?.match(/[?&]pageId=(\d+)/)?.[1] ?? null;
+}
+
+/**
+ * Proposes the roadmap item each PRD page belongs to. An existing roadmap PRD link
+ * (prdLinks: item id → URL) wins over name matching. NEVER_LINK always applies.
+ */
+export function proposePrdMatches(pages: PageRef[], items: TreeItem[], prdLinks: Record<string, string | null> = {}): PrdMatch[] {
   const norm = items.map((i) => {
     const prefix = teamPrefix(i.team_name);
     return { id: i.id, prefix, core: normalizeTitle(i.name).core };
@@ -45,6 +54,8 @@ export function proposePrdMatches(pages: PageRef[], items: TreeItem[]): PrdMatch
     const blockedTeams = NEVER_LINK.filter((b) => b.pageId === page.id).map((b) => b.notTeam);
     const sameTeam = norm.filter((i) => !t.prefix || i.prefix === t.prefix);
     const allowed = sameTeam.filter((i) => !blockedTeams.includes(i.prefix));
+    const linked = norm.filter((i) => !blockedTeams.includes(i.prefix) && confluencePageId(prdLinks[i.id]) === page.id);
+    if (linked.length === 1) return { page, itemId: linked[0].id, reason: 'linked' as const, candidates: [linked[0].id] };
     const pick = (pool: typeof norm) => {
       const exact = pool.filter((i) => i.core === t.core);
       if (exact.length) return { list: exact, kind: 'exact' as const };
