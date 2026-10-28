@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import { exec } from 'child_process';
@@ -107,6 +107,14 @@ app.get('/api/slack-nav', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Final error handler: log and return 500 instead of crashing.
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Unhandled route error:', err);
+  if (res.headersSent) return;
+  const status = (err as any)?.status === 400 ? 400 : 500;
+  res.status(status).json({ error: status === 400 ? 'Bad request' : 'Internal server error' });
+});
 
 if (process.env.NODE_ENV !== 'test' && process.env.VITEST === undefined) {
   app.listen(PORT, () => {

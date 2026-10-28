@@ -3,6 +3,14 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { projects, roadmapItems, type RoadmapItemRow } from '../db/schema';
 import { actorOf, logActivity } from '../lib/activity';
+import { asyncHandler } from '../lib/async-handler';
+import { parseJson } from '../lib/doc-check';
+import type { RoadmapStage } from '../../../shared/doc-matrix';
+
+const STAGES: RoadmapStage[] = [
+  'not-started', 'roadmap', 'discover', 'plan', 'ready-for-build',
+  'build', 'measure', 'done', 'on-hold', 'wont-do',
+];
 
 const router = Router();
 
@@ -24,50 +32,63 @@ interface RoadmapApiItem {
 export function serializeRoadmapItem(row: RoadmapItemRow, projectId: string | null) {
   return {
     ...row,
-    phases: JSON.parse(row.phases || '{}'),
-    links: JSON.parse(row.links || '{}'),
+    phases: parseJson(row.phases, {}),
+    links: parseJson(row.links, {}),
     hidden: Boolean(row.hidden),
     project_id: projectId,
   };
 }
 
 // POST /api/roadmap/sync — upsert a snapshot pushed by Claude
-router.post('/sync', async (req: Request, res: Response) => {
+router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
   const items: RoadmapApiItem[] | undefined = req.body?.items;
   if (!Array.isArray(items)) return res.status(400).json({ error: 'items array is required' });
-
-  const ts = new Date().toISOString();
+  // Validate everything before writing anything.
   for (const it of items) {
-    if (!it?.id || !it?.name || !it?.stage) return res.status(400).json({ error: 'each item needs id, name, stage' });
-    const existing = await db.select().from(roadmapItems).where(eq(roadmapItems.id, it.id)).get();
-    const values = {
-      id: it.id,
-      name: it.name.trim(),
-      team_id: it.team?.id ?? null,
-      team_name: it.team?.name ?? null,
-      parent_team_id: it.team?.parentTeamId ?? null,
-      stage: it.stage,
-      status: it.status ?? null,
-      pm_name: it.pm?.name ?? null,
-      jira_key: it.jiraKey ?? null,
-      phases: JSON.stringify(it.phases ?? {}),
-      dev_start_half: it.devStartHalf ?? null,
-      links: JSON.stringify(it.links ?? {}),
-      hidden: it.hidden ? 1 : 0,
-      updated_at: it.updatedAt ?? null,
-      synced_at: ts,
-    };
-    if (existing) {
-      await db.update(roadmapItems).set(values).where(eq(roadmapItems.id, it.id)).run();
-    } else {
-      await db.insert(roadmapItems).values({ ...values, first_seen_at: ts }).run();
+    if (
+      !it || typeof it !== 'object' ||
+      typeof it.id !== 'string' || !it.id ||
+      typeof it.name !== 'string' || !it.name.trim() ||
+      typeof it.stage !== 'string' || !STAGES.includes(it.stage as RoadmapStage)
+    ) {
+      return res.status(400).json({ error: `each item needs string id, name and a valid stage (${STAGES.join(', ')})` });
     }
   }
 
-  const allProjects = await db.select().from(projects).where(eq(projects.status, 'active')).all();
+  const ts = new Date().toISOString();
+  await db.transaction(async (tx) => {
+    for (const it of items) {
+      const existing = await tx.select().from(roadmapItems).where(eq(roadmapItems.id, it.id)).get();
+      const values = {
+        id: it.id,
+        name: it.name.trim(),
+        team_id: it.team?.id ?? null,
+        team_name: it.team?.name ?? null,
+        parent_team_id: it.team?.parentTeamId ?? null,
+        stage: it.stage,
+        status: it.status ?? null,
+        pm_name: it.pm?.name ?? null,
+        jira_key: it.jiraKey ?? null,
+        phases: JSON.stringify(it.phases ?? {}),
+        dev_start_half: it.devStartHalf ?? null,
+        links: JSON.stringify(it.links ?? {}),
+        hidden: it.hidden ? 1 : 0,
+        updated_at: it.updatedAt ?? null,
+        synced_at: ts,
+      };
+      if (existing) {
+        await tx.update(roadmapItems).set(values).where(eq(roadmapItems.id, it.id)).run();
+      } else {
+        await tx.insert(roadmapItems).values({ ...values, first_seen_at: ts }).run();
+      }
+    }
+  });
+
+  const allProjects = await db.select().from(projects).all();
+  // Archived projects still hold their link (matches the 409 check in PATCH /docs).
   const linkedIds = new Set(allProjects.map((p) => p.roadmap_item_id).filter(Boolean));
   const unlinked = items.filter((it) => !linkedIds.has(it.id));
-  const candidates = allProjects.filter((p) => !p.roadmap_item_id && (p.docs_stage === null || p.docs_stage === 'proposal'));
+  const candidates = allProjects.filter((p) => p.status === 'active' && !p.roadmap_item_id && (p.docs_stage === null || p.docs_stage === 'proposal'));
 
   const suggestions = unlinked.flatMap((it) => {
     const match = candidates.find((p) =>
@@ -91,14 +112,14 @@ router.post('/sync', async (req: Request, res: Response) => {
     suggestions,
     unlinked: unlinked.map((it) => ({ id: it.id, name: it.name.trim(), jira_key: it.jiraKey ?? null, team: it.team?.name ?? null, stage: it.stage })),
   });
-});
+}));
 
 // GET /api/roadmap
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   const rows = await db.select().from(roadmapItems).all();
   const linked = await db.select({ id: projects.id, item: projects.roadmap_item_id }).from(projects).all();
   const byItem = new Map(linked.filter((l) => l.item).map((l) => [l.item as string, l.id]));
   res.json(rows.map((r) => serializeRoadmapItem(r, byItem.get(r.id) ?? null)));
-});
+}));
 
 export default router;

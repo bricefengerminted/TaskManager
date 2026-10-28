@@ -10,6 +10,9 @@ export function actorOf(req: Request): Actor {
   return req.get('x-actor') === 'claude' ? 'claude' : 'user';
 }
 
+/** Anything with `insert`: the db or a transaction. */
+export type Executor = Pick<typeof db, 'insert'>;
+
 export async function logActivity(entry: {
   actor: Actor;
   type: string;
@@ -18,8 +21,8 @@ export async function logActivity(entry: {
   task_id?: string | null;
   task_title?: string | null;
   detail?: unknown;
-}) {
-  await db.insert(activity).values({
+}, exec: Executor = db) {
+  await exec.insert(activity).values({
     id: uuidv4(),
     created_at: new Date().toISOString(),
     actor: entry.actor,

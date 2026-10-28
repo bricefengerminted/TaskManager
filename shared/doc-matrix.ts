@@ -163,6 +163,11 @@ export function describeRule(rule: DueRule): string {
   return `${ANCHOR_LABEL[rule.anchor]} ${sign}${amount}`;
 }
 
+/** True for a real calendar date written YYYY-MM-DD (rejects 2026-02-31). */
+export function isValidIsoDate(v: unknown): v is string {
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && addDays(v, 0) === v;
+}
+
 function validDate(v: string | null | undefined): string | null {
   if (!v || !/^\d{4}-\d{2}-\d{2}/.test(v)) return null;
   const d = v.slice(0, 10);
