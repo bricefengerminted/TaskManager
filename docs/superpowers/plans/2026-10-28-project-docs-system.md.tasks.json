@@ -110,7 +110,7 @@
     {
       "id": 12,
       "subject": "Task 12: Live dry run against the real roadmap",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Load the real 22 items, link the existing projects Brice approves, apply the check to them, and confirm the output matches the known gaps. No project is created and no roadmap link is written without Brice's approval.\n\nSee plan section \"Task 12: Live dry run against the real roadmap\".\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"`get_doc_health` output reviewed with Brice. The project's TaskManager board shows no duplicate doc tasks.\", \"acceptanceCriteria\": [\"`roadmap_items` holds 22 Digital Products items in Roadmap/Build/Measure.\", \"IDEA-850 and IDEA-932 are linked only after Brice confirms each match.\", \"`get_doc_health` for the linked projects shows no Brief/PRD link for [OI] Messaging Center (IDEA-850), matching the open item in the spec.\", \"The existing lifecycle tasks carry `doc_key` (backfill), and apply creates no duplicate PRD, release-notes or metrics tasks.\"]}\n```",
       "blockedBy": [
         8,
@@ -118,5 +118,5 @@
       ]
     }
   ],
-  "lastUpdated": "2026-10-28T17:55:53.958804+00:00"
+  "lastUpdated": "2026-10-28T18:32:31.398007+00:00"
 }
