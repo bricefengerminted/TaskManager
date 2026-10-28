@@ -7,6 +7,7 @@ import type { CreateProjectInput, UpdateProjectInput, ProjectDocsInput } from '.
 import { DOC_KEYS, isValidIsoDate, type DocKey } from '../../../shared/doc-matrix';
 import { serializeProject, TEAM_ABBREV, todayIso } from '../lib/doc-check';
 import { asyncHandler } from '../lib/async-handler';
+import { SECTION_TITLE_GLOB } from '../../../shared/task-sections';
 import { actorOf, logActivity } from '../lib/activity';
 
 const router = Router();
@@ -32,7 +33,7 @@ router.get('/', async (_req: Request, res: Response) => {
           count: sql<number>`count(*)`.as('count'),
         })
         .from(tasks)
-        .where(eq(tasks.project_id, p.id))
+        .where(sql`${tasks.project_id} = ${p.id} AND ${tasks.title} NOT GLOB ${SECTION_TITLE_GLOB}`)
         .groupBy(tasks.status)
         .all();
 
@@ -48,7 +49,7 @@ router.get('/', async (_req: Request, res: Response) => {
         .select({ count: sql<number>`count(*)`.as('count') })
         .from(tasks)
         .where(
-          sql`${tasks.project_id} = ${p.id} AND ${tasks.due_date} IS NOT NULL AND ${tasks.due_date} < ${today} AND ${tasks.status} != 'done'`
+          sql`${tasks.project_id} = ${p.id} AND ${tasks.due_date} IS NOT NULL AND ${tasks.due_date} < ${today} AND ${tasks.status} != 'done' AND ${tasks.title} NOT GLOB ${SECTION_TITLE_GLOB}`
         )
         .get();
       taskCounts.overdue = Number(overdueCount?.count ?? 0);

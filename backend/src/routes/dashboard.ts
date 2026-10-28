@@ -4,7 +4,9 @@ import { db } from '../db';
 import { projects, tasks, roadmapItems } from '../db/schema';
 import { asyncHandler } from '../lib/async-handler';
 import { serializeProject } from '../lib/doc-check';
+import { SECTION_TITLE_GLOB } from '../../../shared/task-sections';
 const router = Router();
+const notSection = sql`${tasks.title} NOT GLOB ${SECTION_TITLE_GLOB}`;
 
 router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   try {
@@ -13,6 +15,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
     const taskStatusCounts = await db
       .select({ status: tasks.status, count: sql<number>`count(*)`.as('count') })
       .from(tasks)
+      .where(notSection)
       .groupBy(tasks.status)
       .all();
 
@@ -30,7 +33,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
     const overdueResult = await db
       .select({ count: sql<number>`count(*)`.as('count') })
       .from(tasks)
-      .where(sql`${tasks.due_date} IS NOT NULL AND ${tasks.due_date} < ${today} AND ${tasks.status} != 'done'`)
+      .where(sql`${tasks.due_date} IS NOT NULL AND ${tasks.due_date} < ${today} AND ${tasks.status} != 'done' AND ${notSection}`)
       .get();
     const overdueTasks = Number(overdueResult?.count ?? 0);
 
@@ -39,7 +42,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
       const counts = await db
         .select({ status: tasks.status, count: sql<number>`count(*)`.as('count') })
         .from(tasks)
-        .where(eq(tasks.project_id, p.id))
+        .where(sql`${tasks.project_id} = ${p.id} AND ${notSection}`)
         .groupBy(tasks.status)
         .all();
 
@@ -54,7 +57,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
         .select({ count: sql<number>`count(*)`.as('count') })
         .from(tasks)
         .where(
-          sql`${tasks.project_id} = ${p.id} AND ${tasks.due_date} IS NOT NULL AND ${tasks.due_date} < ${today} AND ${tasks.status} != 'done'`
+          sql`${tasks.project_id} = ${p.id} AND ${tasks.due_date} IS NOT NULL AND ${tasks.due_date} < ${today} AND ${tasks.status} != 'done' AND ${notSection}`
         )
         .get();
       tc.overdue = Number(overdueProj?.count ?? 0);
