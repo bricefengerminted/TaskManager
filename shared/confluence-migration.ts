@@ -1,6 +1,7 @@
 // Migration of existing Confluence pages into the roadmap tree. Produces a list for approval;
 // nothing here writes to Confluence. Spec: §3 "Migration".
 
+import { docRow } from './doc-matrix';
 import { docPageTitle, teamPrefix, type TitleCollision, type TreeItem, type TreeNode } from './confluence-tree';
 
 export interface PageRef {
@@ -92,6 +93,8 @@ export interface MigrationInput {
   legacy: PageRef[];
   /** Current titles of adopted pages, by page id; '' if unknown. */
   adoptedTitles?: Record<string, string>;
+  /** Hand-picked matches the name matcher missed: PRD page id → hub node key. NEVER_LINK still applies. */
+  prdOverrides?: Record<string, string>;
 }
 
 export const BANNER_TEXT =
@@ -101,7 +104,21 @@ export function buildMigrationList(input: MigrationInput): MigrationRow[] {
   const rows: Omit<MigrationRow, 'n'>[] = [];
   const byId = new Map(input.items.map((i) => [i.id, i]));
 
+  const hubs = new Map(input.nodes.filter((n) => n.kind === 'hub').map((n) => [n.key, n]));
   for (const m of input.prdMatches) {
+    const overrideKey = input.prdOverrides?.[m.page.id];
+    if (overrideKey) {
+      const hub = hubs.get(overrideKey);
+      if (!hub) throw new Error(`Unknown hub for override of ${m.page.id}: ${overrideKey}`);
+      const banned = NEVER_LINK.find((b) => b.pageId === m.page.id && b.notTeam === hub.team);
+      if (banned) throw new Error(`Override refused for ${m.page.id}: ${banned.reason}`);
+      rows.push({
+        action: 'move_rename', pageId: m.page.id, currentTitle: m.page.title,
+        newTitle: hub.title.replace(/ — Hub$/, ` — ${docRow('prd').pageTitle}`), newParentKey: hub.key,
+        note: 'Suggested match (not found by name or roadmap link). Page ID and links are kept.',
+      });
+      continue;
+    }
     const item = m.itemId ? byId.get(m.itemId) : undefined;
     if (item) {
       rows.push({

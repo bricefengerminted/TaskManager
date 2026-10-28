@@ -25,6 +25,8 @@ export interface Inventory {
   offRoadmap: OffRoadmapHub[];
   legacy: PageRef[];
   adoptedTitles: Record<string, string>;
+  /** PRD page id → hub node key, for matches Brice confirms by hand. */
+  prdOverrides?: Record<string, string>;
 }
 
 export interface PlanInputs {
@@ -86,6 +88,7 @@ export function buildPlan(inp: PlanInputs): Plan {
     prdMatches: proposePrdMatches(inp.inventory.prdPages, inp.items, Object.fromEntries(inp.items.map((i) => [i.id, i.links.prd ?? null]))),
     legacy: inp.inventory.legacy,
     adoptedTitles: inp.inventory.adoptedTitles,
+    prdOverrides: inp.inventory.prdOverrides,
   });
   return { today: inp.today, nodes: planned, collisions, migration };
 }

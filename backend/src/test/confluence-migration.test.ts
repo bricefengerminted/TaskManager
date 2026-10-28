@@ -104,3 +104,37 @@ describe('buildMigrationList', () => {
     expect(md).toMatch(/4286087221.*Never link to the WW On-Canvas item/);
   });
 });
+
+describe('prd overrides', () => {
+  const nodes = planTree({ items, offRoadmap: [{ key: 'IDEA-845', name: 'Registry Enhancements Phase 2', team: 'WW', pageId: '4226482184' }] });
+  const base = { nodes, items, collisions: [], legacy: [] };
+
+  it('moves an overridden PRD under the chosen hub, including off-roadmap hubs', () => {
+    const rows = buildMigrationList({
+      ...base,
+      prdMatches: proposePrdMatches([{ id: '3965943809', title: 'WW - Stripe - Registry Phase 2 Experience' }], items),
+      prdOverrides: { '3965943809': 'hub:off:IDEA-845' },
+    });
+    expect(rows[0]).toMatchObject({
+      action: 'move_rename', pageId: '3965943809',
+      newTitle: '[WW] Registry Enhancements Phase 2 — Brief/PRD', newParentKey: 'hub:off:IDEA-845',
+    });
+    expect(rows[0].note).toMatch(/Suggested/);
+  });
+
+  it('refuses to override the OI On-Canvas PRD onto a WW hub', () => {
+    expect(() => buildMigrationList({
+      ...base,
+      prdMatches: proposePrdMatches([{ id: '4286087221', title: 'PRD — OI: On-Canvas Editing' }], items),
+      prdOverrides: { '4286087221': 'hub:ww-oce' },
+    })).toThrow(/Never link/);
+  });
+
+  it('rejects an override to an unknown hub', () => {
+    expect(() => buildMigrationList({
+      ...base,
+      prdMatches: proposePrdMatches([{ id: '1', title: 'PRD - Something' }], items),
+      prdOverrides: { '1': 'hub:nope' },
+    })).toThrow(/Unknown hub/);
+  });
+});
