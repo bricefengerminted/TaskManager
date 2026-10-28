@@ -68,6 +68,9 @@ describe('evaluateDocs', () => {
     const rows = evaluateDocs(ctx, {}, TODAY);
     expect(rows.map((x) => x.key)).toEqual(['hub', 'one_pager', 'prd', 'jira_epic', 'release_notes']);
     expect(rows.every((x) => x.status === 'cant_date')).toBe(true);
+    const r = byKey(rows);
+    expect(r.prd.needs).toEqual(['Build start']);
+    expect(r.one_pager.needs).toEqual(['Discovery start', 'Entered roadmap']);
   });
 
   it('needs the task done for page docs', () => {
@@ -108,9 +111,9 @@ describe('evaluateDocs', () => {
     expect(r.release_notes.status).toBe('waived');
   });
 
-  it('drops the PRD in one-pager-only mode', () => {
+  it('waives the PRD in one-pager-only mode', () => {
     const rows = evaluateDocs({ ...modular, doc_mode: 'one_pager_only' }, {}, TODAY);
-    expect(rows.some((x) => x.key === 'prd')).toBe(false);
+    expect(byKey(rows).prd.status).toBe('waived');
   });
 
   it('only asks a proposal for its one-pager, undated', () => {
@@ -146,5 +149,93 @@ describe('helpers', () => {
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
     expect(daysBetween('2026-10-01', '2026-10-28')).toBe(27);
     expect(daysBetween('2026-10-01T15:00:00.000Z', '2026-10-28')).toBe(27);
+  });
+});
+
+describe('review fixes', () => {
+  const mk = (over: Partial<DocContext>): DocContext => ({ ...modular, ...over });
+  const pub = { page_url: 'https://x/pages/7', published: true };
+
+  it('gives a proposal only the one-pager even with phases', () => {
+    const ctx = mk({ stage: null, phases: { ux: { start: '2026-01-01' }, measure: { start: '2026-02-01' } } });
+    expect(evaluateDocs(ctx, {}, TODAY).map((x) => x.key)).toEqual(['one_pager']);
+  });
+
+  it('normalizes a timestamp today', () => {
+    const ctx = mk({ phases: { build: { start: '2026-08-04', end: '2026-10-28' } } });
+    expect(byKey(evaluateDocs(ctx, {}, '2026-10-28T09:00:00Z')).release_notes.status).toBe('due_soon');
+  });
+
+  it('shows review when published but not done', () => {
+    expect(byKey(evaluateDocs(modular, { release_notes: pub }, '2026-10-20')).release_notes.status).toBe('review');
+    const ctx = mk({ stage: 'measure' });
+    const ev = { 'experiment_brief.results': { ...pub, task_done: true } };
+    expect(byKey(evaluateDocs(ctx, ev, '2026-11-15'))['experiment_brief.results'].status).toBe('review');
+  });
+
+  it('does not treat draft URLs as published', () => {
+    const draft = 'https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=222';
+    const r = byKey(evaluateDocs(modular, { prd: { link: draft, task_done: true }, jira_epic: { link: draft } }, TODAY));
+    expect(r.prd.status).not.toBe('done');
+    expect(r.jira_epic.status).not.toBe('done');
+  });
+
+  it('parses page ids for mismatch', () => {
+    const mm = (link: string, page_url: string) =>
+      byKey(evaluateDocs(modular, { prd: { link, page_url } }, TODAY)).prd.mismatch;
+    expect(mm('https://x/wiki/viewpage.action?pageId=222', 'https://x/wiki/pages/222/x')).toBe(false);
+    expect(mm('https://x/wiki/pages/edit-v2/222', 'https://x/wiki/pages/222')).toBe(false);
+    expect(mm('https://x/wiki/pages/111', 'https://x/wiki/pages/222')).toBe(true);
+    expect(mm('https://x/wiki/x/AbCd', 'https://x/wiki/pages/222')).toBe(false);
+  });
+
+  it('treats malformed dates as missing', () => {
+    const ctx = mk({ phases: { ...modular.phases, build: { start: '08/04/2026', end: '2026-11-10' } } });
+    expect(() => evaluateDocs(ctx, {}, TODAY)).not.toThrow();
+    expect(byKey(evaluateDocs(ctx, {}, TODAY)).prd.status).toBe('cant_date');
+  });
+
+  it('requires research only with uxr, falling back to Build start -8w', () => {
+    expect(evaluateDocs(modular, {}, TODAY).some((x) => x.key === 'research')).toBe(false);
+    const ctx = mk({ phases: { build: modular.phases.build, uxr: { start: '2026-04-01' } } });
+    const r = byKey(evaluateDocs(ctx, {}, TODAY)).research;
+    expect(r.due).toBe('2026-06-09');
+    expect(r.due_rule).toBe('Build start −8w');
+  });
+
+  it('requires figma only with a ux phase', () => {
+    expect(evaluateDocs(modular, {}, TODAY).some((x) => x.key === 'figma')).toBe(false);
+    const ctx = mk({ phases: { ...modular.phases, ux: { start: '2026-05-01' } } });
+    expect(byKey(evaluateDocs(ctx, {}, TODAY)).figma.due).toBe('2026-08-04');
+  });
+
+  it('requires the CS/marketing brief only when customer facing', () => {
+    expect(evaluateDocs(modular, {}, TODAY).some((x) => x.key === 'cs_marketing_brief')).toBe(false);
+    const r = byKey(evaluateDocs(mk({ customer_facing: true }), {}, TODAY)).cs_marketing_brief;
+    expect(r.due).toBe('2026-11-03');
+    expect(r.due_rule).toBe('Build end −1w');
+  });
+
+  it('falls back to build.end+14 for metrics when measure.start is missing', () => {
+    const ctx = mk({ phases: { build: { start: '2026-08-04', end: '2026-11-10' }, measure: { end: '2026-12-01' } } });
+    const r = byKey(evaluateDocs(ctx, {}, TODAY)).metrics_snapshot;
+    expect(r.due).toBe('2026-11-24');
+    expect(r.due_rule).toBe('Build end +2w');
+  });
+
+  it('waives undone rows when on hold or no-go, and honours waivers over overdue', () => {
+    expect(byKey(evaluateDocs(mk({ stage: 'on-hold' }), {}, TODAY)).prd.status).toBe('waived');
+    expect(byKey(evaluateDocs(mk({ decision: 'no_go' }), {}, TODAY)).prd.status).toBe('waived');
+    expect(byKey(evaluateDocs(mk({ waivers: { prd: 'n/a' } }), {}, TODAY)).prd.status).toBe('waived');
+  });
+
+  it('handles due-date boundaries', () => {
+    const st = (today: string) => byKey(evaluateDocs(modular, {}, today)).release_notes.status; // due 2026-11-10
+    expect(st('2026-11-10')).toBe('due_soon');
+    expect(st('2026-10-27')).toBe('due_soon');
+    expect(st('2026-10-26')).toBe('missing');
+    const ms = (today: string) => byKey(evaluateDocs(modular, {}, today)).metrics_snapshot.status; // due 11-24, phase not reached
+    expect(ms('2026-10-26')).toBe('inactive');
+    expect(ms('2026-10-27')).toBe('missing');
   });
 });

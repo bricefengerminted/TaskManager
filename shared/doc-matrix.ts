@@ -21,10 +21,10 @@ export type DocKey =
   | 'experiment_brief.results';
 
 export type DocStatus =
-  | 'done' | 'draft' | 'due_soon' | 'overdue' | 'missing' | 'waived' | 'cant_date' | 'inactive';
+  | 'done' | 'draft' | 'review' | 'due_soon' | 'overdue' | 'missing' | 'waived' | 'cant_date' | 'inactive';
 
 export const DOC_STATUSES: DocStatus[] = [
-  'overdue', 'due_soon', 'missing', 'cant_date', 'draft', 'done', 'waived', 'inactive',
+  'overdue', 'due_soon', 'missing', 'cant_date', 'draft', 'review', 'done', 'waived', 'inactive',
 ];
 
 export type Anchor =
@@ -84,6 +84,8 @@ export interface DocRowResult {
   phase: DocPhase | null;
   due: string | null;
   due_rule: string;
+  /** Readable anchors missing when status is cant_date; otherwise empty. */
+  needs: string[];
   status: DocStatus;
   mismatch: boolean;
   link: string | null;
@@ -102,7 +104,7 @@ export const DOC_MATRIX: DocRow[] = [
     required: (c) => hasPhase(c, 'uxr'),
     due: { anchor: 'discovery.end', offsetDays: 0 }, fallback: { anchor: 'build.start', offsetDays: -56 } },
   { key: 'prd', phase: 'ux', label: 'Brief/PRD', pageTitle: 'Brief/PRD',
-    required: (c) => onRoadmap(c) && c.doc_mode === 'full',
+    required: onRoadmap,
     due: { anchor: 'build.start', offsetDays: -14 }, roadmapLink: 'prd' },
   { key: 'figma', phase: 'ux', label: 'Figma', pageTitle: 'Figma', required: (c) => hasPhase(c, 'ux'),
     due: { anchor: 'build.start', offsetDays: 0 }, roadmapLink: 'figma', linkOnly: true },
@@ -162,9 +164,13 @@ export function describeRule(rule: DueRule): string {
 }
 
 function anchorDate(c: DocContext, anchor: Anchor): string | null {
-  if (anchor === 'entered_scope') return c.entered_scope_at ? c.entered_scope_at.slice(0, 10) : null;
+  if (anchor === 'entered_scope') {
+    const v = c.entered_scope_at;
+    return v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null;
+  }
   const [phase, edge] = anchor.split('.') as [PhaseKey, 'start' | 'end'];
-  return c.phases[phase]?.[edge] ?? null;
+  const v = c.phases[phase]?.[edge];
+  return v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null;
 }
 
 export function computeDue(row: DocRow, c: DocContext): { due: string | null; rule: DueRule } {
@@ -177,12 +183,15 @@ export function computeDue(row: DocRow, c: DocContext): { due: string | null; ru
   return { due: null, rule: row.due };
 }
 
+// on-hold / wont-do are never actually used: isStopped() returns first in isActive's callers
+// (rowStatus waives before activity is checked). Entries exist only to satisfy the Record type.
 const STAGE_PHASE_INDEX: Record<RoadmapStage, number> = {
   'not-started': 0, roadmap: 0, discover: 0, plan: 1, 'ready-for-build': 1,
   build: 2, measure: 3, done: 3, 'on-hold': 0, 'wont-do': 0,
 };
 const PHASE_INDEX: Record<DocPhase, number> = { discovery: 0, ux: 1, build: 2, measure: 3 };
 
+/** Parked deliberately stays a proposal-like state: it is not treated as stopped. */
 export function isStopped(c: DocContext): boolean {
   return c.decision === 'no_go' || c.stage === 'on-hold' || c.stage === 'wont-do';
 }
@@ -194,29 +203,39 @@ export function isActive(row: DocRow, c: DocContext, due: string | null, today: 
   return due !== null && today >= addDays(due, -28);
 }
 
-function pageKey(url: string): string {
-  return url.match(/\/pages\/(\d+)/)?.[1] ?? url.match(/draftId=(\d+)/)?.[1] ?? url.replace(/\/$/, '');
+function pageKey(url: string): string | null {
+  return (
+    url.match(/\/pages\/(?:edit-v2\/|edit\/)?(\d+)/)?.[1] ??
+    url.match(/[?&]pageId=(\d+)/)?.[1] ??
+    url.match(/draftId=(\d+)/)?.[1] ??
+    null
+  );
 }
 
 function isMismatch(ev: DocEvidence): boolean {
   if (!ev.link || !ev.page_url) return false;
-  return pageKey(ev.link) !== pageKey(ev.page_url);
+  const a = pageKey(ev.link);
+  const b = pageKey(ev.page_url);
+  if (a === null || b === null) return false;
+  return a !== b;
 }
 
 function rowStatus(row: DocRow, c: DocContext, ev: DocEvidence, due: string | null, today: string): DocStatus {
   const proposal = c.stage === null;
   const exists = Boolean(ev.link || ev.page_url);
-  const published = Boolean(ev.link || ev.published);
+  const linkPublished = Boolean(ev.link) && !/draftId=|resumedraft\.action/.test(ev.link!);
+  const published = linkPublished || Boolean(ev.published);
   const complete = row.linkOnly
-    ? Boolean(ev.link)
+    ? linkPublished
     : published && (proposal || Boolean(ev.task_done)) && (!row.needsResults || Boolean(ev.results_filled));
 
   if (complete) return 'done';
-  if (isStopped(c) || c.waivers[row.key]) return 'waived';
+  if (isStopped(c) || c.waivers[row.key] || (row.key === 'prd' && c.doc_mode === 'one_pager_only')) return 'waived';
   if (proposal) return exists ? 'draft' : 'missing';
   if (due === null) return 'cant_date';
   if (!isActive(row, c, due, today)) return 'inactive';
   if (today > due) return 'overdue';
+  if (published) return 'review';
   if (ev.page_url && !ev.published) return 'draft';
   if (today >= addDays(due, -14)) return 'due_soon';
   return exists ? 'draft' : 'missing';
@@ -227,8 +246,10 @@ export function evaluateDocs(
   evidence: Partial<Record<DocKey, DocEvidence>>,
   today: string,
 ): DocRowResult[] {
+  const t = today.slice(0, 10);
   const results: DocRowResult[] = [];
   for (const row of DOC_MATRIX) {
+    if (c.stage === null && row.key !== 'one_pager') continue;
     if (!row.required(c)) continue;
     const ev = evidence[row.key] ?? {};
     const proposal = c.stage === null;
@@ -239,7 +260,10 @@ export function evaluateDocs(
       phase: row.phase,
       due,
       due_rule: proposal ? 'Before roadmap' : describeRule(rule),
-      status: rowStatus(row, c, ev, due, today),
+      needs: !proposal && due === null
+        ? [row.due, row.fallback].filter((x): x is DueRule => Boolean(x)).map((x) => ANCHOR_LABEL[x.anchor])
+        : [],
+      status: rowStatus(row, c, ev, due, t),
       mismatch: isMismatch(ev),
       link: ev.link ?? ev.page_url ?? null,
     });
