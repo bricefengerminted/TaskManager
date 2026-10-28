@@ -25,6 +25,8 @@ describe('titles', () => {
     expect(displayName('OI: On-Canvas Editing', 'OI')).toBe('On-Canvas Editing');
     expect(displayName('WW - Modular Elements', 'OI')).toBe('WW - Modular Elements');
     expect(displayName('Oil painting', 'OI')).toBe('Oil painting');
+    expect(displayName('WW Print Attach Phase 2', 'WW')).toBe('Print Attach Phase 2');
+    expect(displayName('WWW launch', 'WW')).toBe('WWW launch');
   });
 
   it('builds hub and doc page titles', () => {

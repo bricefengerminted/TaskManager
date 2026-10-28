@@ -23,10 +23,10 @@ export function teamPrefix(teamName: string | null | undefined): string {
   return prefix;
 }
 
-/** The roadmap name trimmed, minus a leading copy of its own team prefix ("[OI] ", "OI - ", "OI – ", "OI: "). */
+/** The roadmap name trimmed, minus a leading copy of its own team prefix ("[OI] ", "OI - ", "OI – ", "OI: ", "OI "). */
 export function displayName(name: string, prefix: string): string {
   const trimmed = name.trim();
-  const re = new RegExp(`^(\\[${prefix}\\]|${prefix}\\s*[-–—:])\\s*`, 'i');
+  const re = new RegExp(`^(\\[${prefix}\\]|${prefix}\\s*[-–—:]|${prefix}\\s)\\s*`, 'i');
   return trimmed.replace(re, '').trim() || trimmed;
 }
 
