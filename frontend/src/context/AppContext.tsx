@@ -4,6 +4,7 @@ import { api } from '../api/client';
 
 interface AppState {
   projects: Project[];
+  archivedProjects: Project[];
   currentProject: Project | null;
   tasks: Task[];
   dashboard: DashboardStats | null;
@@ -15,6 +16,7 @@ type Action =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_PROJECTS'; payload: Project[] }
+  | { type: 'SET_ARCHIVED_PROJECTS'; payload: Project[] }
   | { type: 'ADD_PROJECT'; payload: Project }
   | { type: 'UPDATE_PROJECT'; payload: Project }
   | { type: 'REMOVE_PROJECT'; payload: string }
@@ -30,6 +32,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_LOADING': return { ...state, loading: action.payload };
     case 'SET_ERROR': return { ...state, error: action.payload };
     case 'SET_PROJECTS': return { ...state, projects: action.payload };
+    case 'SET_ARCHIVED_PROJECTS': return { ...state, archivedProjects: action.payload };
     case 'ADD_PROJECT': return { ...state, projects: [...state.projects, action.payload] };
     case 'UPDATE_PROJECT':
       return { ...state, projects: state.projects.map(p => p.id === action.payload.id ? action.payload : p) };
@@ -49,6 +52,7 @@ function reducer(state: AppState, action: Action): AppState {
 
 const initialState: AppState = {
   projects: [],
+  archivedProjects: [],
   currentProject: null,
   tasks: [],
   dashboard: null,
@@ -59,10 +63,12 @@ const initialState: AppState = {
 interface AppContextValue {
   state: AppState;
   loadProjects: () => Promise<void>;
+  loadArchivedProjects: () => Promise<void>;
   loadProject: (id: string) => Promise<void>;
   createProject: (name: string, description?: string) => Promise<Project>;
   updateProject: (id: string, data: Parameters<typeof api.updateProject>[1]) => Promise<void>;
   archiveProject: (id: string) => Promise<void>;
+  restoreProject: (id: string) => Promise<void>;
   loadTasks: (projectId: string) => Promise<void>;
   createTask: (projectId: string, data: Parameters<typeof api.createTask>[1]) => Promise<Task>;
   updateTask: (projectId: string, taskId: string, data: Parameters<typeof api.updateTask>[2]) => Promise<void>;
@@ -113,9 +119,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.currentProject]);
 
+  const loadArchivedProjects = useCallback(async () => {
+    try {
+      const archived = await api.getArchivedProjects();
+      dispatch({ type: 'SET_ARCHIVED_PROJECTS', payload: archived });
+    } catch (e) {
+      dispatch({ type: 'SET_ERROR', payload: (e as Error).message });
+    }
+  }, []);
+
   const archiveProject = useCallback(async (id: string) => {
     await api.archiveProject(id);
     dispatch({ type: 'REMOVE_PROJECT', payload: id });
+    // Refresh archived list
+    try {
+      const archived = await api.getArchivedProjects();
+      dispatch({ type: 'SET_ARCHIVED_PROJECTS', payload: archived });
+    } catch {}
+  }, []);
+
+  const restoreProject = useCallback(async (id: string) => {
+    const restored = await api.restoreProject(id);
+    dispatch({ type: 'ADD_PROJECT', payload: restored });
+    // Remove from archived list
+    dispatch({ type: 'SET_ARCHIVED_PROJECTS', payload: [] });
+    try {
+      const archived = await api.getArchivedProjects();
+      dispatch({ type: 'SET_ARCHIVED_PROJECTS', payload: archived });
+    } catch {}
   }, []);
 
   const loadTasks = useCallback(async (projectId: string) => {
@@ -196,7 +227,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      state, loadProjects, loadProject, createProject, updateProject, archiveProject,
+      state, loadProjects, loadArchivedProjects, loadProject, createProject, updateProject, archiveProject, restoreProject,
       loadTasks, createTask, updateTask, updateTaskStatus, reorderTasks, deleteTask, loadDashboard, clearError,
     }}>
       {children}

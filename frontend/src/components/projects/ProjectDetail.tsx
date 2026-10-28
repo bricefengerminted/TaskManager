@@ -99,7 +99,7 @@ export function ProjectDetail() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-auto">
         {state.loading ? (
           <div className="p-8 text-slate-500">Loading tasks...</div>
         ) : viewMode === 'board' ? (

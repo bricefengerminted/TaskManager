@@ -93,11 +93,27 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`flex-1 rounded-lg p-2 min-h-[200px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50 border-2 border-dashed border-indigo-200' : col.color}`}
+                    className={`flex-1 overflow-y-auto rounded-lg p-2 min-h-[200px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50 border-2 border-dashed border-indigo-200' : col.color}`}
                   >
-                    {colTasks.map((task, index) => (
+                    {colTasks.map((task, index) => {
+                      const isSection = task.title.startsWith('━━━') || task.title.match(/^[━─═—]{2,}/);
+                      const sectionName = isSection ? task.title.replace(/[━─═—\s]/g, '') : '';
+                      return (
                       <Draggable key={task.id} draggableId={task.id} index={index}>
-                        {(provided, snapshot) => (
+                        {(provided, snapshot) => isSection ? (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="mb-2 mt-3 first:mt-0"
+                          >
+                            <div className="flex items-center gap-2 px-1 py-1">
+                              <div className="h-px flex-1 bg-slate-300" />
+                              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">{sectionName}</span>
+                              <div className="h-px flex-1 bg-slate-300" />
+                            </div>
+                          </div>
+                        ) : (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
@@ -177,7 +193,8 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                           </div>
                         )}
                       </Draggable>
-                    ))}
+                      );
+                    })}
                     {provided.placeholder}
 
                     {colTasks.length === 0 && (

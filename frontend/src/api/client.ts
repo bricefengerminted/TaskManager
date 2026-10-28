@@ -24,6 +24,11 @@ export const api = {
     request<import('@shared/types').Project>(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   archiveProject: (id: string) =>
     request<void>(`/projects/${id}`, { method: 'DELETE' }),
+  restoreProject: (id: string) =>
+    request<import('@shared/types').Project>(`/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: 'active' }),
+    }),
 
   // Tasks
   getTasks: (projectId: string) =>
