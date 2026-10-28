@@ -5,6 +5,7 @@ import { Dashboard } from './components/dashboard/Dashboard';
 import { ProjectList } from './components/projects/ProjectList';
 import { ProjectForm } from './components/projects/ProjectForm';
 import { ProjectDetail } from './components/projects/ProjectDetail';
+import { DocsPage } from './components/docs/DocsPage';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/docs" element={<DocsPage />} />
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/projects/new" element={<ProjectForm />} />
             <Route path="/projects/:projectId/edit" element={<ProjectForm />} />
