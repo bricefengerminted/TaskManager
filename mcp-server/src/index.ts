@@ -372,7 +372,7 @@ server.tool(
           page_url: z.string().nullable().optional(),
           published: z.boolean().optional(),
           results_filled: z.boolean().optional(),
-        })
+        }).nullable()
       )
       .optional()
       .describe("Per doc_key: the hub child page found in Confluence; null clears stored evidence"),
@@ -429,7 +429,7 @@ server.tool(
 
 server.tool(
   "link_project",
-  "Set a project's doc-system fields: roadmap item link, hub/one-pager URLs, team, doc mode, customer-facing flag, waivers, docs_stage. Only link a roadmap item after the user has approved that match.",
+  "Set a project's doc-system fields: roadmap item link, hub/one-pager URLs, team, doc mode, customer-facing flag, waivers, docs_stage. Only link a roadmap item after the user has approved that match. waivers replaces the whole set; include existing waivers to keep them.",
   {
     project_id: z.string(),
     roadmap_item_id: z.string().nullable().optional(),

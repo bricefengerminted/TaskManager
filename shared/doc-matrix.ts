@@ -60,6 +60,8 @@ export interface DocEvidence {
   published?: boolean;
   results_filled?: boolean;
   task_done?: boolean;
+  /** A due date the user pinned on the task; overrides the computed due for status and display. */
+  pinned_due?: string | null;
 }
 
 export interface DocRow {
@@ -264,14 +266,17 @@ export function evaluateDocs(
     if (!row.required(c)) continue;
     const ev = evidence[row.key] ?? {};
     const proposal = c.stage === null;
-    const { due, rule } = proposal ? { due: null, rule: row.due } : computeDue(row, c);
+    const computed = proposal ? { due: null, rule: row.due } : computeDue(row, c);
+    const pinned = !proposal ? validDate(ev.pinned_due) : null;
+    const due = pinned ?? computed.due;
+    const rule = computed.rule;
     const status = rowStatus(row, c, ev, due, t);
     results.push({
       key: row.key,
       label: row.label,
       phase: row.phase,
       due,
-      due_rule: proposal ? 'Before roadmap' : describeRule(rule),
+      due_rule: proposal ? 'Before roadmap' : pinned ? 'Pinned' : describeRule(rule),
       needs:
         status === 'cant_date'
           ? [row.due, row.fallback].filter((x): x is DueRule => Boolean(x)).map((x) => ANCHOR_LABEL[x.anchor])

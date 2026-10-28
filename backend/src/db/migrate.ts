@@ -127,9 +127,15 @@ export async function runMigrations() {
     const set = taken.get(t.project_id) ?? new Set<string>();
     taken.set(t.project_id, set);
     if (set.has(key)) continue;
-    await client.execute({ sql: `UPDATE tasks SET doc_key = ? WHERE id = ?`, args: [key, t.id] });
+    await client.execute({ sql: `UPDATE tasks SET doc_key = ?, doc_type = ? WHERE id = ?`, args: [key, key.split('.')[0], t.id] });
     set.add(key);
   }
+
+  // Idempotent fix-up: doc_type is the doc_key's prefix (experiment_brief.plan -> experiment_brief).
+  await client.execute(
+    `UPDATE tasks SET doc_type = CASE WHEN instr(doc_key, '.') > 0 THEN substr(doc_key, 1, instr(doc_key, '.') - 1) ELSE doc_key END
+     WHERE doc_key IS NOT NULL AND (doc_type IS NULL OR doc_type != CASE WHEN instr(doc_key, '.') > 0 THEN substr(doc_key, 1, instr(doc_key, '.') - 1) ELSE doc_key END)`
+  );
 
   await client.execute(
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_project_doc_key ON tasks(project_id, doc_key) WHERE doc_key IS NOT NULL`

@@ -170,7 +170,7 @@ router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
       // never overwritten and a null matrix date never blanks an existing date.
       // A null matrix date (anchor temporarily missing) must not erase the last computed one.
       if (r.due !== null && task.due_computed !== r.due) set.due_computed = r.due;
-      if (r.due !== null && task.due_date !== r.due && !task.due_pinned) {
+      if (r.status !== 'waived' && r.due !== null && task.due_date !== r.due && !task.due_pinned) {
         if (task.due_date === null || task.due_date === task.due_computed) {
           set.due_date = r.due;
           redated.push({ id: task.id, doc_key: r.key, from: task.due_date, to: r.due });

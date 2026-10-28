@@ -19,12 +19,6 @@ app.use(express.json());
 // Serve uploaded images
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Run migrations on startup
-runMigrations().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
-
 // Routes
 app.use('/api/projects', projectsRouter);
 app.use('/api/projects/:projectId/tasks', tasksRouter);
@@ -119,9 +113,17 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 if (process.env.NODE_ENV !== 'test' && process.env.VITEST === undefined) {
-  app.listen(PORT, () => {
-    console.log(`TaskManager API running on http://localhost:${PORT}`);
-  });
+  // Migrations finish before the server accepts requests. (Tests run them in setup.ts.)
+  runMigrations()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`TaskManager API running on http://localhost:${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Migration failed:', err);
+      process.exit(1);
+    });
 }
 
 export default app;

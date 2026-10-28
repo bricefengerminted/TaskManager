@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { projects, tasks } from '../db/schema';
-
+import { projects, tasks, roadmapItems } from '../db/schema';
 import { asyncHandler } from '../lib/async-handler';
+import { serializeProject } from '../lib/doc-check';
 const router = Router();
 
 router.get('/', asyncHandler(async (_req: Request, res: Response) => {
@@ -34,6 +34,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
       .get();
     const overdueTasks = Number(overdueResult?.count ?? 0);
 
+    const items = new Map((await db.select().from(roadmapItems).all()).map((i) => [i.id, i]));
     const projectsWithCounts = await Promise.all(activeProjects.map(async (p) => {
       const counts = await db
         .select({ status: tasks.status, count: sql<number>`count(*)`.as('count') })
@@ -58,7 +59,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
         .get();
       tc.overdue = Number(overdueProj?.count ?? 0);
 
-      return { ...p, task_counts: tc };
+      return { ...serializeProject(p, p.roadmap_item_id ? items.get(p.roadmap_item_id) : undefined), task_counts: tc };
     }));
 
     res.json({

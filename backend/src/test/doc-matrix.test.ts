@@ -263,3 +263,14 @@ describe('review fixes', () => {
     expect(byKey(evaluateDocs(modular, {}, '2026-11-11')).release_notes.status).toBe('overdue');
   });
 });
+
+describe('pinned_due', () => {
+  it('overrides due, status and rule', () => {
+    const base = byKey(evaluateDocs(modular, {}, TODAY)).prd;
+    expect(base.status).toBe('overdue');
+    const r = byKey(evaluateDocs(modular, { prd: { pinned_due: '2026-12-25' } }, TODAY)).prd;
+    expect(r.due).toBe('2026-12-25');
+    expect(r.due_rule).toBe('Pinned');
+    expect(r.status).toBe('missing');
+  });
+});

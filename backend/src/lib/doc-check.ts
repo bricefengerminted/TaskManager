@@ -68,11 +68,12 @@ export function buildEvidence(
     const page = parseJson<PageEvidence>(task?.doc_evidence, {});
     const field = row.roadmapLink;
     out[row.key] = {
-      link: field ? (links[field] ?? projectLinks[field] ?? null) : null,
+      link: field ? (links[field] || projectLinks[field] || null) : null,
       page_url: page.page_url ?? null,
       published: page.published ?? false,
       results_filled: page.results_filled ?? false,
       task_done: task?.status === 'done',
+      pinned_due: task?.due_pinned && task.due_date ? task.due_date : null,
     };
   }
   return out;
@@ -81,7 +82,7 @@ export function buildEvidence(
 export function projectFlags(p: ProjectRow, item: RoadmapItemRow | undefined, today: string): string[] {
   const flags: string[] = [];
   if (p.docs_stage === 'roadmap' && !item) flags.push('roadmap_item_missing');
-  if (p.docs_stage === 'roadmap' && item && !p.hub_url) flags.push('no_hub');
+  if (p.docs_stage === 'roadmap' && item && !p.hub_url && !parseJson<Record<string, string | null>>(item.links, {}).hub) flags.push('no_hub');
   if (p.docs_stage === 'proposal') {
     if (!p.decision && daysBetween(p.created_at, today) > 30) flags.push('awaiting_decision');
     if (p.decision === 'go' && p.decision_date && daysBetween(p.decision_date, today) > 14) flags.push('go_not_on_roadmap');
