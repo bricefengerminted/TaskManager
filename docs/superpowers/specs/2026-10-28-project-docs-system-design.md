@@ -48,6 +48,12 @@ Project docs get lost or never get finished:
 - **Write rules.**
   - Doc tasks and due-date recalculations that follow directly from the matrix are written to
     TaskManager directly, and logged.
+  - **Manual edits win.** A doc task's due date is only moved if it still equals the date the
+    matrix last computed (`due_computed`). The check never writes an empty date over a set one.
+    A date that differs from the matrix, whether you edited it or it was backfilled from the old
+    lifecycle tasks, is reported as a **conflict** for Brice to resolve, and never overwritten.
+  - **Dry run.** `apply` has a `dry_run` mode that returns every planned change without writing
+    anything. The first pass on real data always runs as a dry run.
   - New projects and roadmap ↔ project matches are **proposals** that Brice approves.
   - Confluence moves and renames of existing pages are listed for approval before they happen.
 - **Roadmap write-back** (separate write token, link fields only) fills empty fields only, never
