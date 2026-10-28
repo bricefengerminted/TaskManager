@@ -70,15 +70,15 @@
 - [ ] Brice's answers to D1–D6 are recorded in the README (one line each, with the date).
 - [ ] `security find-generic-password -s taskmanager-confluence -w >/dev/null && echo ok` prints `ok`.
 
-**Verify:** `security find-generic-password -s taskmanager-confluence -a "$CONFLUENCE_EMAIL" >/dev/null && echo ok` → `ok`
+**Verify:** `security find-generic-password -s taskmanager-confluence -w | tr -d '\n' | wc -c` → `192`
 
 **Steps:**
 
 - [ ] **Step 1: Ask Brice to confirm D1–D6** in chat. Change the plan where he disagrees before doing anything else. D2 changes Task 9, D3 changes Task 2, D4 changes Task 6.
-- [ ] **Step 2: Brice creates the token himself.** He goes to id.atlassian.com → Security → API tokens → Create, names it `taskmanager-doc-check`, then runs this in his own terminal (it prompts for the token, so it never lands in shell history):
+- [x] **Step 2: Brice creates the token himself.** Done 2026-10-28: a scoped token (`taskmanager-doc-check`, Confluence, three scopes listed in the README section below), saved in the Keychain at 192 characters, GET through the gateway → 200. If it ever needs replacing, type this into a terminal (not the Run button) and paste at the prompt:
 
 ```bash
-security add-generic-password -s taskmanager-confluence -a brice.fenger@minted.com -w
+read -rs "?Paste token: " T && security add-generic-password -U -s taskmanager-confluence -a brice.fenger@minted.com -w "$T"; unset T; echo
 ```
 
 - [ ] **Step 3: Add to `docs/confluence/README.md`:**
@@ -87,7 +87,11 @@ security add-generic-password -s taskmanager-confluence -a brice.fenger@minted.c
 ## Doc check (step 4)
 
 - Token: Keychain service `taskmanager-confluence`, account = your Atlassian email. Created by Brice; rotate at id.atlassian.com.
-- The CLI reads `CONFLUENCE_EMAIL` (default `brice.fenger@minted.com`) and `CONFLUENCE_BASE` (default `https://minted.atlassian.net`).
+- The token is **scoped** (Confluence: `read:page:confluence`, `write:page:confluence`, `read:hierarchical-content:confluence`). Scoped tokens only work through the API gateway, so `CONFLUENCE_API` defaults to `https://api.atlassian.com/ex/confluence/8414201f-d700-468c-8b6c-c46b3396d079`. Links written into pages and TaskManager still use `CONFLUENCE_SITE` (default `https://minted.atlassian.net`).
+- Save or replace the token with the prompt below, typed into a terminal (not the app's Run button, which can't take input). `security add-generic-password … -w` with no value cuts input at 128 characters, and tokens are 192:
+  `read -rs "?Paste token: " T && security add-generic-password -U -s taskmanager-confluence -a brice.fenger@minted.com -w "$T"; unset T; echo`
+- Check: `security find-generic-password -s taskmanager-confluence -w | tr -d '\n' | wc -c` → 192. Verified 2026-10-28: GET page 4647387154 through the gateway → 200.
+- The CLI reads `CONFLUENCE_EMAIL` (default `brice.fenger@minted.com`).
 - Dry run: `npm --prefix backend run doc-check -- run`
 - Write: `npm --prefix backend run doc-check -- run --write`
 - Confirm a proposed doc: `npm --prefix backend run doc-check -- accept <projectId> <doc_key> <pageId>`
@@ -901,14 +905,16 @@ import { todayIso } from '../lib/doc-check';
 
 const API = process.env.TASKMANAGER_API_URL || 'http://localhost:3001/api';
 const EMAIL = process.env.CONFLUENCE_EMAIL || 'brice.fenger@minted.com';
-const BASE = process.env.CONFLUENCE_BASE || 'https://minted.atlassian.net';
+// Scoped token → API gateway for requests; the site URL is only for links people click.
+const API_BASE = process.env.CONFLUENCE_API || 'https://api.atlassian.com/ex/confluence/8414201f-d700-468c-8b6c-c46b3396d079';
+const BASE = process.env.CONFLUENCE_SITE || 'https://minted.atlassian.net';
 const DIR = resolve(__dirname, '../../../docs/confluence');
 const MANIFEST = join(DIR, 'manifest.json');
 const IGNORE = join(DIR, 'doc-check-ignore.json');
 const STATE = join(DIR, 'state');
 
 const readJson = <T>(p: string, fallback?: T): T => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : (fallback as T));
-const conf = new ConfluenceRest({ base: BASE, email: EMAIL, token: () => keychainToken(EMAIL) });
+const conf = new ConfluenceRest({ base: API_BASE, email: EMAIL, token: () => keychainToken(EMAIL) });
 
 async function tm<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API}${path}`, body === undefined ? {} : {
