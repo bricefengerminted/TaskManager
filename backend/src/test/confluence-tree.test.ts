@@ -63,7 +63,7 @@ describe('planTree', () => {
       'Proposals', 'Proposals · Online Invites', 'Proposals · Wedding Websites', 'Proposals · Address Book',
       'Not Pursued', 'Not Pursued · Online Invites', 'Not Pursued · Wedding Websites', 'Not Pursued · Address Book',
       'Unscheduled', 'Unscheduled · Wedding Websites',
-      '2026', "H1'26", "H1'26 · Online Invites", "H2'26", "H2'26 · Wedding Websites",
+      '2026 Roadmap Projects', "H1'26", "H1'26 · Online Invites", "H2'26", "H2'26 · Wedding Websites",
       '[OI] Messaging Center — Hub', '[WW] Modular Elements — Hub', '[WW] Someday — Hub',
     ]));
     expect(titles).not.toContain("H2'26 · Online Invites");

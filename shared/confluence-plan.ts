@@ -55,7 +55,7 @@ function rollupIntro(n: TreeNode): string {
     case 'team_not_pursued': return `No-go proposals for ${TEAM_NAME[n.team!]}.`;
     case 'unscheduled': return 'Roadmap items with no Build start yet, and off-roadmap projects, by team.';
     case 'team_unscheduled': return `Unscheduled ${TEAM_NAME[n.team!]} projects.`;
-    case 'year': return `Roadmap projects with a Build start in ${n.title}.`;
+    case 'year': return `Roadmap projects with a Build start in ${n.key.slice(5)}.`;
     case 'half': return `Roadmap projects starting Build in ${halfTitle(n.half!)}: project × doc status, overdue first.`;
     case 'team_half': return `${TEAM_NAME[n.team!]} projects starting Build in ${halfTitle(n.half!)}.`;
     default: return '';

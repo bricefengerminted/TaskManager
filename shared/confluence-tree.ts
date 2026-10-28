@@ -116,7 +116,8 @@ export function planTree(input: TreeInput): TreeNode[] {
 
   const halves = [...new Set(inScope.map((i) => i.half).filter((h): h is string => !!h))].sort();
   for (const year of [...new Set(halves.map((h) => h.slice(0, 4)))]) {
-    add({ key: `year:${year}`, title: year, parentKey: 'root', kind: 'year' });
+    // Bare "2026" is already taken in the PM space by other teams' pages.
+    add({ key: `year:${year}`, title: `${year} Roadmap Projects`, parentKey: 'root', kind: 'year' });
   }
   for (const half of halves) {
     add({ key: `half:${half}`, title: halfTitle(half), parentKey: `year:${half.slice(0, 4)}`, kind: 'half', half });
