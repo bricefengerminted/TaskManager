@@ -1,11 +1,11 @@
 # Confluence migration list
 
-Generated 2026-10-28. Mark **Approve** with [x] (do it) or [-] (skip). Nothing runs until Brice has marked a row.
+Generated 2026-10-28. Mark **Approve** with [x] (do it) or [-] (skip). Nothing runs until Brice has marked a row. Brice approved all non-`leave` rows on 2026-10-28.
 
 | # | Approve | Action | Page | Current title | New title | New parent | Note |
 |---|---|---|---|---|---|---|---|
 | 1 | [ ] | leave | 4626743302 | PRD: Photo/Video Enhancement (Brand Layouts + Non-Home Pages) | — | — | No roadmap match. Brice to assign or leave in place. |
-| 2 | [ ] | move_rename | 4287135788 | PRD: Wedding Website Builder — Left-Nav Consolidation | [WW] Navigation - Customize Design/Edit Pages — Brief/PRD | hub:id-1774303573152-bfkpgr0o2 | Suggested match (not found by name or roadmap link). Page ID and links are kept. |
+| 2 | [x] Done 2026-10-28 (v3, verified under 4647190548) | move_rename | 4287135788 | PRD: Wedding Website Builder — Left-Nav Consolidation | [WW] Navigation - Customize Design/Edit Pages — Brief/PRD | hub:id-1774303573152-bfkpgr0o2 | Suggested match (not found by name or roadmap link). Page ID and links are kept. |
 | 3 | [ ] | leave | 4286087221 | PRD — OI: On-Canvas Editing | — | — | Held back: OI On-Canvas PRD. Never link to the WW On-Canvas item. |
 | 4 | [ ] | leave | 4279762951 | PRD: Formal / Informal Mode for Online Invitations | — | — | No roadmap match. Brice to assign or leave in place. |
 | 5 | [ ] | move_rename | 4183031858 | Brief/PRD: Upload Your Own Design — Online Invitations | [OI] Upload Your Own Design Element — Brief/PRD | hub:wcHh4m1ftaJh3yspNahT | linked match to "OI - Upload Your Own Design Element". Page ID and links are kept. |
