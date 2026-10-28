@@ -35,7 +35,8 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_ARCHIVED_PROJECTS': return { ...state, archivedProjects: action.payload };
     case 'ADD_PROJECT': return { ...state, projects: [...state.projects, action.payload] };
     case 'UPDATE_PROJECT':
-      return { ...state, projects: state.projects.map(p => p.id === action.payload.id ? action.payload : p) };
+      // Merge so fields the update response omits (e.g. task_counts) survive.
+      return { ...state, projects: state.projects.map(p => p.id === action.payload.id ? { ...p, ...action.payload } : p) };
     case 'REMOVE_PROJECT':
       return { ...state, projects: state.projects.filter(p => p.id !== action.payload) };
     case 'SET_CURRENT_PROJECT': return { ...state, currentProject: action.payload };
