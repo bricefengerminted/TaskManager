@@ -1,0 +1,84 @@
+export function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function isOverdue(dueDate: string | null | undefined, status: string): boolean {
+  if (!dueDate || status === 'done') return false;
+  const today = new Date().toISOString().split('T')[0];
+  return dueDate < today;
+}
+
+export const PRIORITY_LABELS = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  urgent: 'Urgent',
+};
+
+export const PRIORITY_COLORS = {
+  low: 'bg-slate-100 text-slate-600',
+  medium: 'bg-blue-100 text-blue-700',
+  high: 'bg-orange-100 text-orange-700',
+  urgent: 'bg-red-100 text-red-700',
+};
+
+export const STATUS_LABELS = {
+  todo: 'To Do',
+  in_progress: 'In Progress',
+  done: 'Done',
+};
+
+export function extractUrls(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+  return Array.from(new Set(text.match(urlRegex) ?? []));
+}
+
+export function isSlackUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.endsWith('slack.com');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Opens a URL — Slack links are sent to the backend which converts them
+ * to slack:// deep links and opens them via the OS (routed to Rambox).
+ * Everything else opens in a new browser tab.
+ */
+export async function openUrl(url: string): Promise<void> {
+  if (isSlackUrl(url)) {
+    try {
+      const res = await fetch('/api/open-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (res.ok) return;
+      console.warn('Slack deep-link open failed, falling back to browser');
+    } catch {
+      console.warn('Slack deep-link open failed, falling back to browser');
+    }
+  }
+  window.open(url, '_blank');
+}
+
+
+/** "2026-H2" → "H2'26"; anything else → "Unscheduled". */
+export function halfLabel(half: string | null | undefined): string {
+  const m = half?.match(/^(\d{4})-H([12])$/);
+  return m ? `H${m[2]}'${m[1].slice(2)}` : 'Unscheduled';
+}
+
+/** Returns the URL only if it is http(s); otherwise null. */
+export function safeHttpUrl(u: string | null | undefined): string | null {
+  if (!u) return null;
+  try {
+    const p = new URL(u).protocol;
+    return p === 'https:' || p === 'http:' ? u : null;
+  } catch {
+    return null;
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "planPath": "docs/plans/2026-07-09-task-artifact-linking.md",
+  "tasks": [
+    {
+      "id": 1,
+      "subject": "Task 1: Add links + doc_type columns (schema + migration)",
+      "status": "completed",
+      "description": "**Goal:** tasks table gains links TEXT NOT NULL DEFAULT '[]' and nullable doc_type TEXT, added idempotently on startup.\n\n**Files:** backend/src/db/schema.ts, backend/src/db/migrate.ts\n\n**Verify:** npm run migrate --prefix backend prints 'Migrations complete.' and is clean on re-run.\n\n```json:metadata\n{\"files\": [\"backend/src/db/schema.ts\", \"backend/src/db/migrate.ts\"], \"verifyCommand\": \"npm run migrate --prefix backend\", \"acceptanceCriteria\": [\"links + doc_type columns exist\", \"migration idempotent\", \"existing rows preserved\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: Thread links + doc_type through shared types and REST API",
+      "status": "completed",
+      "blockedBy": [1],
+      "description": "**Goal:** shared types describe the fields; tasks route parses links on read, accepts links/doc_type on create/update, supports ?due_within_days=N and ?doc_type=X list filters.\n\n**Files:** shared/types.ts, backend/src/routes/tasks.ts\n\n**Verify:** curl round-trip + npm run build --prefix backend clean.\n\n```json:metadata\n{\"files\": [\"shared/types.ts\", \"backend/src/routes/tasks.ts\"], \"verifyCommand\": \"npm run build --prefix backend\", \"acceptanceCriteria\": [\"TaskLink type + extended interfaces\", \"GET returns parsed links array + doc_type\", \"POST/PUT accept fields\", \"due_within_days + doc_type filters work\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Expose links/doc_type/filters + add_task_link via MCP",
+      "status": "completed",
+      "blockedBy": [2],
+      "description": "**Goal:** list_tasks accepts due_within_days/doc_type and outputs links/doc_type; create_task/update_task accept links/doc_type; new add_task_link tool appends one link (read-modify-write).\n\n**Files:** mcp-server/src/index.ts\n\n**Verify:** npm run build --prefix mcp-server no TS errors. NOTE: MCP server must be restarted to load new tools.\n\n```json:metadata\n{\"files\": [\"mcp-server/src/index.ts\"], \"verifyCommand\": \"npm run build --prefix mcp-server\", \"acceptanceCriteria\": [\"list_tasks filters + output fields\", \"create/update accept links/doc_type\", \"add_task_link tool appends non-destructively\", \"builds clean\"]}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: Surface links + doc_type in the frontend",
+      "status": "completed",
+      "blockedBy": [2],
+      "description": "**Goal:** TaskForm sees/adds/removes links + shows doc_type badge; TaskList renders link chips + badge.\n\n**Files:** frontend/src/components/tasks/TaskForm.tsx, frontend/src/components/tasks/TaskList.tsx\n\n**Verify:** cd frontend && npx tsc --noEmit; manual: add link, save, reopen -> persists + clickable.\n\n```json:metadata\n{\"files\": [\"frontend/src/components/tasks/TaskForm.tsx\", \"frontend/src/components/tasks/TaskList.tsx\"], \"verifyCommand\": \"cd /Users/brice.fenger/TaskManager/frontend && npx tsc --noEmit\", \"acceptanceCriteria\": [\"TaskForm links editor + doc_type badge + payload\", \"TaskList chips + badge\", \"typecheck passes\"]}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: Rewire Claude-side skills to use doc_type + links",
+      "status": "completed",
+      "blockedBy": [3],
+      "description": "**Goal:** scaffold-project stamps doc_type on lifecycle tasks (producer); draft-deliverables identifies by doc_type, gates via due_within_days, reads links as primary drafted-signal, records artifacts via add_task_link (consumer).\n\n**Files (Claude Assistant dir — NOT git; save only, no commit):** .claude/skills/scaffold-project/SKILL.md, .claude/skills/draft-deliverables/SKILL.md\n\n**Verify:** dry-run trace; confirm each criterion maps to explicit text; trace IDEA-932 Detection -> skip, already drafted.\n\n```json:metadata\n{\"files\": [\"/Users/brice.fenger/Claude Assistant/.claude/skills/scaffold-project/SKILL.md\", \"/Users/brice.fenger/Claude Assistant/.claude/skills/draft-deliverables/SKILL.md\"], \"verifyCommand\": \"(dry-run trace — no automated test)\", \"acceptanceCriteria\": [\"scaffold-project stamps doc_type\", \"Detection by doc_type + due gate\", \"links primary drafted-signal\", \"Filing calls add_task_link\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-07-09"
+}

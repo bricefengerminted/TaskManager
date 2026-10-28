@@ -1,0 +1,138 @@
+{
+  "planPath": "docs/superpowers/plans/2026-09-14-taskmanager-control-plane.md",
+  "tasks": [
+    {
+      "id": 1,
+      "subject": "Task 1: Backend test harness (Vitest + supertest)",
+      "status": "pending",
+      "description": "Stand up Vitest + supertest against a throwaway SQLite DB with per-test table clearing; guard app.listen under VITEST.\n\n```json:metadata\n{\"files\": [\"backend/package.json\", \"backend/vitest.config.ts\", \"backend/src/test/setup.ts\", \"backend/src/index.ts\", \"backend/.gitignore\", \"backend/src/test/sanity.test.ts\"], \"verifyCommand\": \"npm --prefix backend test\", \"acceptanceCriteria\": [\"sanity test passes\", \"app import does not bind a port\", \"test db git-ignored\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: Data model (proposals, activity, briefings) + shared types",
+      "status": "pending",
+      "blockedBy": [1],
+      "description": "Add drizzle tables + DDL + cumulative db/index registration + Phase 1 shared types.\n\n```json:metadata\n{\"files\": [\"backend/src/db/schema.ts\", \"backend/src/db/index.ts\", \"backend/src/db/migrate.ts\", \"shared/types.ts\", \"backend/src/db/migrate-test-exports.ts\", \"backend/src/test/migrate.test.ts\"], \"verifyCommand\": \"npm --prefix backend test src/test/migrate.test.ts\", \"acceptanceCriteria\": [\"three tables exist\", \"tables registered in drizzle\", \"dedupe unique index exists\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Activity infrastructure + wire into task mutations",
+      "status": "pending",
+      "blockedBy": [2],
+      "description": "actorOf + logActivity helpers, GET /api/activity, and activity events on all task mutations with PUT diff.\n\n```json:metadata\n{\"files\": [\"backend/src/lib/actor.ts\", \"backend/src/lib/activity.ts\", \"backend/src/routes/activity.ts\", \"backend/src/routes/tasks.ts\", \"backend/src/index.ts\", \"backend/src/test/activity.test.ts\"], \"verifyCommand\": \"npm --prefix backend test src/test/activity.test.ts\", \"acceptanceCriteria\": [\"task_created/completed/status_changed/link_added/task_updated/task_deleted logged\", \"actor from X-TM-Actor header\", \"activity newest-first\"]}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: Proposals API + apply logic + dedupe",
+      "status": "pending",
+      "blockedBy": [3],
+      "description": "Proposals lifecycle: create+dedupe, patch, approve-apply-by-kind, decline, bulk.\n\n```json:metadata\n{\"files\": [\"backend/src/routes/proposals.ts\", \"backend/src/index.ts\", \"backend/src/test/proposals.test.ts\"], \"verifyCommand\": \"npm --prefix backend test src/test/proposals.test.ts\", \"acceptanceCriteria\": [\"dedupe updates pending / skips declined\", \"approve applies create_task/create_project/update_task\", \"decline + bulk work\"]}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: Briefings API",
+      "status": "pending",
+      "blockedBy": [2],
+      "description": "POST /api/briefing upsert + GET (default today, empty when absent).\n\n```json:metadata\n{\"files\": [\"backend/src/routes/briefing.ts\", \"backend/src/index.ts\", \"backend/src/test/briefing.test.ts\"], \"verifyCommand\": \"npm --prefix backend test src/test/briefing.test.ts\", \"acceptanceCriteria\": [\"upsert round-trip\", \"repeat POST replaces\", \"missing date returns empty sections\"]}\n```"
+    },
+    {
+      "id": 6,
+      "subject": "Task 6: Cross-project upcoming endpoint",
+      "status": "pending",
+      "blockedBy": [3],
+      "description": "GET /api/upcoming?days=N across projects: overdue + within window, enriched with project_name, ordered by due_date.\n\n```json:metadata\n{\"files\": [\"backend/src/routes/upcoming.ts\", \"backend/src/index.ts\", \"backend/src/test/upcoming.test.ts\"], \"verifyCommand\": \"npm --prefix backend test src/test/upcoming.test.ts\", \"acceptanceCriteria\": [\"overdue included, beyond-window/done/no-date excluded\", \"project_name attached\", \"ordered asc\"]}\n```"
+    },
+    {
+      "id": 7,
+      "subject": "Task 7: Frontend API client + context for proposals/activity/briefing/upcoming",
+      "status": "pending",
+      "blockedBy": [4, 5, 6],
+      "description": "Extend api client + AppContext with proposals/activity/briefing/upcoming state and actions.\n\n```json:metadata\n{\"files\": [\"frontend/src/api/client.ts\", \"frontend/src/context/AppContext.tsx\"], \"verifyCommand\": \"npm --prefix frontend run build\", \"acceptanceCriteria\": [\"client + context methods present\", \"frontend builds (after Task 9)\"]}\n```"
+    },
+    {
+      "id": 8,
+      "subject": "Task 8: Nav restructure + Cockpit (Today) page",
+      "status": "pending",
+      "blockedBy": [7],
+      "description": "Routes (/ Cockpit, /dashboard, /inbox); Today/Inbox(badge)/Dashboard nav; Cockpit rendering briefing + upcoming (inline complete/reschedule) + activity feed.\n\n```json:metadata\n{\"files\": [\"frontend/src/App.tsx\", \"frontend/src/components/layout/Sidebar.tsx\", \"frontend/src/components/cockpit/Cockpit.tsx\"], \"verifyCommand\": \"npm --prefix frontend run build\", \"acceptanceCriteria\": [\"routes render\", \"pending badge\", \"cockpit actions work\"]}\n```"
+    },
+    {
+      "id": 9,
+      "subject": "Task 9: Inbox page (proposal review)",
+      "status": "pending",
+      "blockedBy": [8],
+      "description": "Inbox grouped by source with Approve/Edit(modal)/Decline + bulk + pending count.\n\n```json:metadata\n{\"files\": [\"frontend/src/components/inbox/Inbox.tsx\"], \"verifyCommand\": \"npm --prefix frontend run build\", \"acceptanceCriteria\": [\"grouped by source\", \"edit modal for task/project payloads\", \"bulk approve/decline\"]}\n```"
+    },
+    {
+      "id": 10,
+      "subject": "Task 10: MCP server proposal + briefing tools",
+      "status": "pending",
+      "blockedBy": [4, 5],
+      "description": "X-TM-Actor header merge + propose_task/propose_change/propose_project/list_proposals/post_briefing.\n\n```json:metadata\n{\"files\": [\"mcp-server/src/index.ts\"], \"verifyCommand\": \"npm --prefix mcp-server run build\", \"acceptanceCriteria\": [\"actor header on every request\", \"propose + briefing tools\", \"build succeeds\"]}\n```"
+    },
+    {
+      "id": 11,
+      "subject": "Task 11: Routine SKILL.md — propose, don't commit + post_briefing",
+      "status": "pending",
+      "blockedBy": [10],
+      "description": "Daily Step 3 proposes (not create/update); Step 6 also posts structured briefing; Monday/Friday propose. Files outside app repo — no git commit, manual verify.\n\n```json:metadata\n{\"files\": [\"~/.claude/scheduled-tasks/daily-morning-briefing/SKILL.md\", \"~/.claude/scheduled-tasks/monday-weekly-planning/SKILL.md\", \"~/.claude/scheduled-tasks/friday-weekly-review-prep/SKILL.md\"], \"verifyCommand\": \"grep -nE 'create_task|update_task|propose_task|propose_change|post_briefing' \\\"$HOME/.claude/scheduled-tasks/daily-morning-briefing/SKILL.md\\\"\", \"acceptanceCriteria\": [\"no bare create_task/update_task in write step\", \"post_briefing added\", \"monday/friday notes added\"]}\n```"
+    },
+    {
+      "id": 12,
+      "subject": "Task 12: roadmap_items table + projects.idea_key + Phase 2 types + import script",
+      "status": "pending",
+      "blockedBy": [2],
+      "description": "roadmap_items mirror + projects.idea_key + Phase 2 shared types + one-time seed from project-timelines.md (13 items).\n\n```json:metadata\n{\"files\": [\"backend/src/db/schema.ts\", \"backend/src/db/index.ts\", \"backend/src/db/migrate.ts\", \"shared/types.ts\", \"backend/src/scripts/import-roadmap.ts\", \"backend/src/db/migrate.roadmap.test.ts\", \"backend/src/scripts/import-roadmap.test.ts\"], \"verifyCommand\": \"cd backend && npx vitest run src/db/migrate.roadmap.test.ts src/scripts/import-roadmap.test.ts\", \"acceptanceCriteria\": [\"table + index + idea_key column\", \"registered cumulatively\", \"13 seeded, IDEA-949 unlinked\"]}\n```"
+    },
+    {
+      "id": 13,
+      "subject": "Task 13: Roadmap API — upsert, list with computed flags, reconcile",
+      "status": "pending",
+      "blockedBy": [12],
+      "description": "POST /roadmap/items upsert; GET /roadmap (flags computed, status-ranked, project_name); GET /roadmap/reconcile.\n\n```json:metadata\n{\"files\": [\"backend/src/routes/roadmap.ts\", \"backend/src/index.ts\", \"backend/src/routes/roadmap.test.ts\"], \"verifyCommand\": \"cd backend && npx vitest run src/routes/roadmap.test.ts\", \"acceptanceCriteria\": [\"upsert on idea_key\", \"flags computed on read\", \"reconcile: orphans/unmapped/mismatch/stale\"]}\n```"
+    },
+    {
+      "id": 14,
+      "subject": "Task 14: MCP roadmap tools",
+      "status": "pending",
+      "blockedBy": [13],
+      "description": "upsert_roadmap_item / list_roadmap / get_reconciliation.\n\n```json:metadata\n{\"files\": [\"mcp-server/src/index.ts\"], \"verifyCommand\": \"npm --prefix mcp-server run build\", \"acceptanceCriteria\": [\"three tools added\", \"build succeeds\"]}\n```"
+    },
+    {
+      "id": 15,
+      "subject": "Task 15: Frontend Roadmap reconciliation view + scaffold→proposal",
+      "status": "pending",
+      "blockedBy": [13, 9],
+      "description": "/roadmap grouped items + reconciliation panel; Scaffold posts a create_project proposal with lifecycle tasks; client/context/route/sidebar.\n\n```json:metadata\n{\"files\": [\"frontend/src/api/client.ts\", \"frontend/src/context/AppContext.tsx\", \"frontend/src/App.tsx\", \"frontend/src/components/layout/Sidebar.tsx\", \"frontend/src/components/roadmap/Roadmap.tsx\"], \"verifyCommand\": \"npm --prefix frontend run build\", \"acceptanceCriteria\": [\"grouped + reconciliation panel\", \"scaffold creates proposal\", \"build succeeds\"]}\n```"
+    },
+    {
+      "id": 16,
+      "subject": "Task 16: Outbox table + Phase 3 types + migration test",
+      "status": "pending",
+      "blockedBy": [12],
+      "description": "outbox table + drizzle reg (cumulative) + Phase 3 types + outbox? on payload interfaces.\n\n```json:metadata\n{\"files\": [\"backend/src/db/migrate.ts\", \"backend/src/db/schema.ts\", \"backend/src/db/index.ts\", \"shared/types.ts\", \"backend/src/db/outbox.migrate.test.ts\"], \"verifyCommand\": \"npm --prefix backend test src/db/outbox.migrate.test.ts\", \"acceptanceCriteria\": [\"table + index\", \"registered cumulatively\", \"types + payload.outbox field\"]}\n```"
+    },
+    {
+      "id": 17,
+      "subject": "Task 17: Outbox API + enqueue-on-approve",
+      "status": "pending",
+      "blockedBy": [16, 4],
+      "description": "outbox enqueue/list/patch/retry (logActivity type: pushed_to_external) + doApprove enqueues payload.outbox.\n\n```json:metadata\n{\"files\": [\"backend/src/routes/outbox.ts\", \"backend/src/index.ts\", \"backend/src/routes/proposals.ts\", \"backend/src/routes/outbox.test.ts\"], \"verifyCommand\": \"npm --prefix backend test src/routes/outbox.test.ts\", \"acceptanceCriteria\": [\"enqueue/list/patch/retry\", \"done sets pushed_at + logs activity\", \"approve enqueues outbox intents\"]}\n```"
+    },
+    {
+      "id": 18,
+      "subject": "Task 18: MCP outbox tools + routine drain step",
+      "status": "pending",
+      "blockedBy": [17, 11],
+      "description": "list_outbox + complete_outbox_item; daily SKILL.md drain step (Atlassian one-at-a-time). SKILL.md not committed.\n\n```json:metadata\n{\"files\": [\"mcp-server/src/index.ts\", \"~/.claude/scheduled-tasks/daily-morning-briefing/SKILL.md\"], \"verifyCommand\": \"npm --prefix mcp-server run build\", \"acceptanceCriteria\": [\"two tools\", \"drain step with Step 0b guard\", \"build succeeds\"]}\n```"
+    },
+    {
+      "id": 19,
+      "subject": "Task 19: Frontend Outbox status panel + route/sidebar",
+      "status": "pending",
+      "blockedBy": [17, 8],
+      "description": "OutboxPanel (pending/failed counts, retry for failed) + client/context/route/sidebar.\n\n```json:metadata\n{\"files\": [\"frontend/src/components/outbox/OutboxPanel.tsx\", \"frontend/src/api/client.ts\", \"frontend/src/context/AppContext.tsx\", \"frontend/src/App.tsx\", \"frontend/src/components/layout/Sidebar.tsx\"], \"verifyCommand\": \"npm --prefix frontend run build\", \"acceptanceCriteria\": [\"counts + list + retry\", \"route + sidebar link\", \"build succeeds\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-09-14T00:00:00.000Z"
+}
