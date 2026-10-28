@@ -104,8 +104,10 @@ app.get('/api/slack-nav', (_req, res) => {
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
-app.listen(PORT, () => {
-  console.log(`TaskManager API running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test' && process.env.VITEST === undefined) {
+  app.listen(PORT, () => {
+    console.log(`TaskManager API running on http://localhost:${PORT}`);
+  });
+}
 
 export default app;
