@@ -189,8 +189,17 @@ async function migrateSettings(write: boolean) {
     const id = confluencePageId(p.hub_url);
     if (id && !hubs.includes(id)) hubs.push(id);
   }
+  const inTree = new Set(inp.tree.map((t) => t.id));
   for (const id of hubs) {
-    const page = await conf.getAdf(id);
+    // Same rule as run: a hub no longer under Roadmap Projects (deleted or moved out) is left alone.
+    if (!inTree.has(id)) { console.log(`${id}: not under Roadmap Projects, skipped`); continue; }
+    let page;
+    try {
+      page = await conf.getAdf(id);
+    } catch (e) {
+      console.log(`${id}: ${(e as Error).message}, skipped`);
+      continue;
+    }
     const label = `${id} (${page.title})`;
     if (findGenerated(page.body, 'settings').length) { console.log(`${label}: already migrated`); continue; }
     const c = page.body.content;
