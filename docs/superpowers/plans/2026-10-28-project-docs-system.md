@@ -1842,7 +1842,7 @@ git commit -m "feat(api): docs health grid and apply (upsert doc tasks, re-date,
 - Modify: `mcp-server/src/index.ts`
 
 **Acceptance Criteria:**
-- [ ] New tools `sync_roadmap`, `get_doc_health`, `apply_doc_check`, `set_project_decision` and `link_project` are registered.
+- [ ] New tools `sync_roadmap`, `get_doc_health`, `apply_doc_check` (with `dry_run`), `resolve_due_conflict`, `set_project_decision` and `link_project` are registered.
 - [ ] Every API call sends `X-Actor: claude`.
 - [ ] `link_project`'s description says it may only be called after the user approves the match.
 - [ ] `npm --prefix mcp-server run build` succeeds.
@@ -1919,11 +1919,31 @@ server.tool(
         })
       )
       .optional()
-      .describe("Per doc_key: the hub child page found in Confluence"),
+      .describe("Per doc_key: the hub child page found in Confluence; null clears stored evidence"),
+    dry_run: z
+      .boolean()
+      .optional()
+      .describe("Return planned changes without writing anything. Task ids in a dry-run `created` list don't exist."),
   },
-  async ({ project_id, evidence }) => {
+  async ({ project_id, evidence, dry_run }) => {
     try {
-      return ok(await api("/docs/apply", { method: "POST", body: JSON.stringify({ project_id, evidence }) }));
+      return ok(await api("/docs/apply", { method: "POST", body: JSON.stringify({ project_id, evidence, dry_run }) }));
+    } catch (e: any) {
+      return fail(e);
+    }
+  }
+);
+
+server.tool(
+  "resolve_due_conflict",
+  "Resolve a doc task whose due date differs from the doc matrix (listed in apply_doc_check `conflicts`). accept = use the matrix date; keep = pin the current date so it is never re-dated. Only call with the user's decision.",
+  {
+    task_id: z.string(),
+    action: z.enum(["accept", "keep"]),
+  },
+  async ({ task_id, action }) => {
+    try {
+      return ok(await api("/docs/resolve-conflict", { method: "POST", body: JSON.stringify({ task_id, action }) }));
     } catch (e: any) {
       return fail(e);
     }
@@ -2590,5 +2610,9 @@ git commit -m "feat(ui): group sidebar by half and team, docs link, dashboard do
 - [ ] **Step 2: Fetch the roadmap.** Call roadmap MCP `list_roadmap_items` with `team: "Digital Products", includeSubteams: true, stage: "roadmap,build,measure,on-hold,wont-do"`. Expect ~22–23 items.
 - [ ] **Step 3: Sync.** Call `sync_roadmap` with that `items` array. Show Brice the `suggestions` (expected: IDEA-850 ↔ `oi-4`, IDEA-932 ↔ `id-1773091064966-jyqedxkup`) and the `unlinked` list.
 - [ ] **Step 4: Link with approval.** For each suggestion Brice approves, call `link_project { project_id, roadmap_item_id }`. Then call `link_project { project_id, waivers: { one_pager: "predates system" } }` for both, since they're in Build or Measure and predate one-pagers.
-- [ ] **Step 5: Apply.** Call `apply_doc_check { project_id }` for each linked project. Review the `created` and `redated` lists with Brice, and confirm no duplicates of the backfilled lifecycle tasks.
+- [ ] **Step 5: Dry run, then apply.**
+  - Call `apply_doc_check { project_id, dry_run: true }` for each linked project.
+  - Review the `created`, `redated` and `conflicts` lists with Brice, and confirm no duplicates of the backfilled lifecycle tasks.
+  - Only after Brice approves, call `apply_doc_check { project_id }` for real.
+  - For each conflict, ask Brice "use the matrix date or keep yours?" and call `resolve_due_conflict` with the answer.
 - [ ] **Step 6: Report.** Call `get_doc_health` and summarize the overdue, missing and can't-date counts for Brice. Projects for the other 20 roadmap items stay as a list for Brice to approve. They're created later, one per approval (`create_project` + `link_project`), and never in bulk without asking.
