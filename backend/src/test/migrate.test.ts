@@ -56,4 +56,38 @@ describe('migrations', () => {
       args: [ts, ts],
     })).rejects.toThrow();
   });
+
+  it('backfills from phase-prefixed and annotated titles', async () => {
+    await client.execute({
+      sql: `INSERT INTO projects (id, name, created_at, updated_at) VALUES ('p3', 'Y', ?, ?)`,
+      args: [ts, ts],
+    });
+    await addTask('n1', 'p3', '[Plan] Write PRD');
+    await addTask('n2', 'p3', '[Plan] Create experimentation doc (if A/B test needed)');
+    await addTask('n3', 'p3', '[Measure] Final results readout');
+    await addTask('n4', 'p3', 'Finalize OI Messaging Center PRD');
+    await runMigrations();
+    const rows = (await client.execute(`SELECT id, doc_key FROM tasks WHERE project_id='p3'`)).rows as any[];
+    const keys = Object.fromEntries(rows.map((r) => [r.id, r.doc_key]));
+    expect(keys.n1).toBe('prd');
+    expect(keys.n2).toBe('experiment_brief.plan');
+    expect(keys.n3).toBe('experiment_brief.results');
+    expect(keys.n4).toBeNull();
+  });
+
+  it('does not give a second prd to a project that already has one', async () => {
+    await client.execute({
+      sql: `INSERT INTO projects (id, name, created_at, updated_at) VALUES ('p4', 'Z', ?, ?)`,
+      args: [ts, ts],
+    });
+    await client.execute({
+      sql: `INSERT INTO tasks (id, project_id, title, doc_key, created_at, updated_at) VALUES ('k1', 'p4', 'Something', 'prd', ?, ?)`,
+      args: [ts, ts],
+    });
+    await addTask('k2', 'p4', '[Plan] Write PRD');
+    await runMigrations();
+    await runMigrations();
+    const rows = (await client.execute(`SELECT id, doc_key FROM tasks WHERE project_id='p4' ORDER BY id`)).rows as any[];
+    expect(rows.map((r) => r.doc_key)).toEqual(['prd', null]);
+  });
 });

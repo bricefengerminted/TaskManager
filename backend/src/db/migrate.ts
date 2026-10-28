@@ -95,24 +95,36 @@ export async function runMigrations() {
   `);
 
   // Backfill doc_key on existing lifecycle tasks (one task per project per key).
-  const TITLE_TO_DOC_KEY: [string, string][] = [
-    ['Write PRD', 'prd'],
-    ['Create experimentation doc', 'experiment_brief.plan'],
-    ['Write release notes', 'release_notes'],
-    ['2-week metrics check', 'metrics_snapshot'],
-    ['Final results readout', 'experiment_brief.results'],
-  ];
-  for (const [title, key] of TITLE_TO_DOC_KEY) {
-    await client.execute({
-      sql: `UPDATE tasks SET doc_key = ?
-            WHERE id IN (
-              SELECT t.id FROM tasks t
-              WHERE t.doc_key IS NULL AND t.title = ?
-                AND NOT EXISTS (SELECT 1 FROM tasks t2 WHERE t2.project_id = t.project_id AND t2.doc_key = ?)
-              GROUP BY t.project_id
-            )`,
-      args: [key, title, key],
-    });
+  // Titles are normalised: leading "[Phase] " and one trailing "(note)" are stripped.
+  const TITLE_TO_DOC_KEY: Record<string, string> = {
+    'write prd': 'prd',
+    'create experimentation doc': 'experiment_brief.plan',
+    'write release notes': 'release_notes',
+    '2-week metrics check': 'metrics_snapshot',
+    'final results readout': 'experiment_brief.results',
+  };
+  const normTitle = (t: string) =>
+    t.replace(/^\s*\[[^\]]*\]\s*/, '').replace(/\s*\([^()]*\)\s*$/, '').trim().toLowerCase();
+
+  const unkeyed = (await client.execute(
+    `SELECT id, project_id, title FROM tasks WHERE doc_key IS NULL ORDER BY created_at, id`
+  )).rows as any[];
+  const keyed = (await client.execute(
+    `SELECT project_id, doc_key FROM tasks WHERE doc_key IS NOT NULL`
+  )).rows as any[];
+  const taken = new Map<string, Set<string>>();
+  for (const r of keyed) {
+    if (!taken.has(r.project_id)) taken.set(r.project_id, new Set());
+    taken.get(r.project_id)!.add(r.doc_key);
+  }
+  for (const t of unkeyed) {
+    const key = TITLE_TO_DOC_KEY[normTitle(String(t.title))];
+    if (!key) continue;
+    const set = taken.get(t.project_id) ?? new Set<string>();
+    taken.set(t.project_id, set);
+    if (set.has(key)) continue;
+    await client.execute({ sql: `UPDATE tasks SET doc_key = ? WHERE id = ?`, args: [key, t.id] });
+    set.add(key);
   }
 
   await client.execute(
