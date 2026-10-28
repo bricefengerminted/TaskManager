@@ -4,12 +4,7 @@ import {
   type DocContext, type DocEvidence, type DocKey, type RoadmapStage,
 } from '../../../shared/doc-matrix';
 
-export const TEAM_ABBREV: Record<string, string> = {
-  'Online Invites': 'OI',
-  'Wedding Websites': 'WW',
-  'Address Book': 'ABK',
-  'Digital Products': 'DP',
-};
+export { TEAM_ABBREV } from '../../../shared/confluence-tree';
 
 /** Today's date in the server's local time zone (the user's Mac), as YYYY-MM-DD. */
 export function todayIso(): string {
