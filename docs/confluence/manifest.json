@@ -263,9 +263,9 @@
     },
     "hub:ww-1": {
       "title": "[WW] WW Print Attach Phase 2 — Hub",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646141972",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646141972"
     },
     "hub:off:IDEA-845": {
       "title": "[WW] Registry Enhancements Phase 2 — Hub",
@@ -275,27 +275,27 @@
     },
     "hub:id-1773953489719-hfz43celk": {
       "title": "[WW] Review Private Event Concept — Hub",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647714842",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647714842"
     },
     "hub:id-1783979663836-wu6v4vb2c": {
       "title": "[WW] Section Layouts — Hub",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4646174773",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4646174773"
     },
     "hub:id-1774303959341-drsg0agt0": {
       "title": "[WW] Settings Page Redesign — Hub",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647387168",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647387168"
     },
     "hub:id-1774304032947-5fts5ccdx": {
       "title": "[WW] Texting / SMS Reminders — Hub",
-      "pageId": null,
-      "status": null,
-      "url": null
+      "pageId": "4647387182",
+      "status": "draft",
+      "url": "https://minted.atlassian.net/wiki/pages/resumedraft.action?draftId=4647387182"
     }
   }
 }
