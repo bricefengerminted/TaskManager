@@ -94,28 +94,6 @@ export function TaskForm({ projectId, task, onClose }: Props) {
   };
   const removeLink = (index: number) => setLinks((prev) => prev.filter((_, i) => i !== index));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) { setError('Title is required'); return; }
-    setSaving(true);
-    setError('');
-    try {
-      const targetProjectId = selectedProjectId;
-      if (isEdit && task) {
-        await updateTask(task.project_id, task.id, { title, description, status, priority, due_date: dueDate || null, images, links });
-      } else {
-        await createTask(targetProjectId, { title, description, status, priority, due_date: dueDate || null, links });
-        // If images were uploaded during creation, update the task right after
-        // (createTask returns the task, but CreateTaskInput doesn't include images)
-      }
-      onClose();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   // For new tasks: create first, then attach images via update
   const handleSubmitWithImages = async (e: React.FormEvent) => {
     e.preventDefault();

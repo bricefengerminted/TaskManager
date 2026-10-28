@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Task, TaskStatus } from '@shared/types';
 import { useApp } from '../../context/AppContext';
-import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_LABELS, formatDate, isOverdue } from '../../utils';
+import { PRIORITY_COLORS, PRIORITY_LABELS, formatDate, isOverdue } from '../../utils';
 import { Lightbox } from '../Lightbox';
 
 interface Props {
