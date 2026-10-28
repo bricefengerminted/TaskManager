@@ -38,6 +38,8 @@ export const tasks = sqliteTable('tasks', {
   due_rule: text('due_rule'),
   // Date the doc matrix last computed; due_date differing from it means a manual edit.
   due_computed: text('due_computed'),
+  // 1 = user chose to keep their own due_date; apply never re-dates or flags it.
+  due_pinned: integer('due_pinned').notNull().default(0),
   doc_evidence: text('doc_evidence'),
   source: text('source', { enum: ['manual', 'slack'] }).notNull().default('manual'),
   slack_raw: text('slack_raw'),

@@ -112,8 +112,10 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled route error:', err);
   if (res.headersSent) return;
-  const status = (err as any)?.status === 400 ? 400 : 500;
-  res.status(status).json({ error: status === 400 ? 'Bad request' : 'Internal server error' });
+  const e = err as { status?: unknown; statusCode?: unknown; message?: string };
+  const code = [e?.status, e?.statusCode].find((c): c is number => typeof c === 'number' && c >= 400 && c < 500);
+  if (code) return res.status(code).json({ error: e.message || 'Bad request' });
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 if (process.env.NODE_ENV !== 'test' && process.env.VITEST === undefined) {

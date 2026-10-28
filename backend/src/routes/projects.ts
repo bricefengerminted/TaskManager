@@ -96,17 +96,20 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
 // PUT /api/projects/:id
 router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
   const { name, description, status }: UpdateProjectInput = req.body ?? {};
+  if (name !== undefined && (typeof name !== 'string' || !name.trim())) return res.status(400).json({ error: 'name must be a non-empty string' });
+  if (description !== undefined && typeof description !== 'string') return res.status(400).json({ error: 'description must be a string' });
+  if (status !== undefined && status !== 'active' && status !== 'archived') return res.status(400).json({ error: "status must be 'active' or 'archived'" });
   const project = await db.select().from(projects).where(eq(projects.id, req.params.id)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
-  const updated = {
-    ...project,
+  const changes = {
     name: name?.trim() ?? project.name,
     description: description ?? project.description,
     status: status ?? project.status,
     updated_at: now(),
   };
-  await db.update(projects).set(updated).where(eq(projects.id, req.params.id)).run();
+  await db.update(projects).set(changes).where(eq(projects.id, req.params.id)).run();
+  const updated = { ...project, ...changes };
   const item = updated.roadmap_item_id
     ? await db.select().from(roadmapItems).where(eq(roadmapItems.id, updated.roadmap_item_id)).get()
     : undefined;
@@ -148,6 +151,7 @@ router.patch('/:id/docs', asyncHandler(async (req: Request, res: Response) => {
       changes.docs_stage = body.docs_stage ?? 'proposal';
     } else {
       if (typeof body.roadmap_item_id !== 'string') return bad('roadmap_item_id must be a string or null');
+      if (body.decision === 'no_go') return bad('Cannot link a roadmap item and record decision no_go in the same call');
       if (body.docs_stage != null && body.docs_stage !== 'roadmap') return bad('Linking a roadmap item requires docs_stage "roadmap"');
       const item = await db.select().from(roadmapItems).where(eq(roadmapItems.id, body.roadmap_item_id)).get();
       if (!item) return bad('Unknown roadmap item');
@@ -162,6 +166,10 @@ router.patch('/:id/docs', asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (body.docs_stage !== undefined && body.roadmap_item_id === undefined) {
+    const noGoStop = body.decision === 'no_go' && body.docs_stage === 'not_pursued';
+    if (linkedAfter && body.docs_stage !== 'roadmap' && !noGoStop) {
+      return bad('A linked project must stay at docs_stage "roadmap" (unlink it first, or use decision no_go)');
+    }
     if (body.docs_stage === 'roadmap' && !linkedAfter) return bad('docs_stage "roadmap" needs a linked roadmap item');
     changes.docs_stage = body.docs_stage;
   }

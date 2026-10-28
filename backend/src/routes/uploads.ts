@@ -27,10 +27,11 @@ const upload = multer({
 
 const MAX_DIMENSION = 3840; // 4K max on longest edge
 
+import { asyncHandler } from '../lib/async-handler';
 const router = Router();
 
 // POST /api/uploads — upload one or more images, compressed to 4K JPEG
-router.post('/', upload.array('images', 10), async (req: Request, res: Response) => {
+router.post('/', upload.array('images', 10), asyncHandler(async (req: Request, res: Response) => {
   const files = req.files as Express.Multer.File[];
   if (!files || files.length === 0) {
     return res.status(400).json({ error: 'No files uploaded' });
@@ -55,6 +56,6 @@ router.post('/', upload.array('images', 10), async (req: Request, res: Response)
   } catch (err) {
     return res.status(500).json({ error: 'Failed to process images' });
   }
-});
+}));
 
 export default router;

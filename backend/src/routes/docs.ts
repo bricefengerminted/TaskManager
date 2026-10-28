@@ -156,7 +156,7 @@ router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
         }
         // Lost a race: another writer created it. Re-read and fall through to update.
         task = (await loadDocTasks()).find((t) => t.doc_key === r.key);
-        if (!task) continue;
+        if (!task) throw new Error(`Unexpected insert conflict for ${r.key}; rolling back`);
       }
 
       const set: Partial<typeof task> = {};
@@ -168,15 +168,16 @@ router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
       }
       // Due dates: only move a date the matrix itself set (or a missing one). A manual edit is
       // never overwritten and a null matrix date never blanks an existing date.
-      if (task.due_computed !== r.due) set.due_computed = r.due;
-      if (r.due !== null && task.due_date !== r.due) {
+      // A null matrix date (anchor temporarily missing) must not erase the last computed one.
+      if (r.due !== null && task.due_computed !== r.due) set.due_computed = r.due;
+      if (r.due !== null && task.due_date !== r.due && !task.due_pinned) {
         if (task.due_date === null || task.due_date === task.due_computed) {
           set.due_date = r.due;
           redated.push({ id: task.id, doc_key: r.key, from: task.due_date, to: r.due });
           await logActivity({ actor, type: 'doc_due_changed', project_id: p.id, task_id: task.id, task_title: task.title,
             summary: `Due date ${task.due_date ?? 'none'} → ${r.due} (${r.due_rule})`,
             detail: { doc_key: r.key, from: task.due_date, to: r.due } }, tx);
-        } else {
+        } else if (task.status !== 'done') {
           conflicts.push({ id: task.id, doc_key: r.key, task_due: task.due_date, matrix_due: r.due, due_rule: r.due_rule });
           if (task.due_computed !== r.due) {
             await logActivity({ actor, type: 'doc_due_conflict', project_id: p.id, task_id: task.id, task_title: task.title,
@@ -228,6 +229,29 @@ router.post('/apply', asyncHandler(async (req: Request, res: Response) => {
     out = e.out;
   }
   return res.json({ ...out, dry_run: dryRun });
+}));
+
+// POST /api/docs/resolve-conflict { task_id, action: 'accept' | 'keep' }
+router.post('/resolve-conflict', asyncHandler(async (req: Request, res: Response) => {
+  const { task_id, action } = isPlainObject(req.body) ? req.body : ({} as Record<string, unknown>);
+  if (typeof task_id !== 'string' || !task_id) return res.status(400).json({ error: 'task_id is required' });
+  if (action !== 'accept' && action !== 'keep') return res.status(400).json({ error: "action must be 'accept' or 'keep'" });
+  const t = await db.select().from(tasks).where(eq(tasks.id, task_id)).get();
+  if (!t || !t.doc_key) return res.status(400).json({ error: 'Not a doc task' });
+  if (action === 'accept' && !t.due_computed) return res.status(400).json({ error: 'No computed due date yet; run apply first' });
+
+  const to = action === 'accept' ? t.due_computed : t.due_date;
+  await db.transaction(async (tx) => {
+    await tx.update(tasks)
+      .set(action === 'accept'
+        ? { due_date: t.due_computed, due_pinned: 0, updated_at: new Date().toISOString() }
+        : { due_pinned: 1, updated_at: new Date().toISOString() })
+      .where(eq(tasks.id, t.id)).run();
+    await logActivity({ actor: actorOf(req), type: 'doc_due_conflict_resolved', project_id: t.project_id, task_id: t.id, task_title: t.title,
+      summary: action === 'accept' ? `Accepted matrix due ${to} (was ${t.due_date ?? 'none'})` : `Kept manual due ${t.due_date ?? 'none'}`,
+      detail: { doc_key: t.doc_key, action, from: t.due_date, to } }, tx);
+  });
+  return res.json({ id: t.id, doc_key: t.doc_key, action, due_date: to, pinned: action === 'keep' });
 }));
 
 export default router;

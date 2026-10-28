@@ -50,6 +50,10 @@ export async function runMigrations() {
     }
   }
 
+  if (!colNames.has('due_pinned')) {
+    await client.execute(`ALTER TABLE tasks ADD COLUMN due_pinned INTEGER NOT NULL DEFAULT 0`);
+  }
+
   const pcols = await client.execute(`PRAGMA table_info(projects)`);
   const pcolNames = new Set(pcols.rows.map((r: any) => r.name));
   const projectCols: [string, string][] = [

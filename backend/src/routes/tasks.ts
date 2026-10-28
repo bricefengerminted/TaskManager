@@ -5,6 +5,7 @@ import { db } from '../db';
 import { tasks, projects } from '../db/schema';
 import type { CreateTaskInput, UpdateTaskInput } from '../../../shared/types';
 
+import { asyncHandler } from '../lib/async-handler';
 const router = Router({ mergeParams: true });
 
 function now() {
@@ -22,7 +23,7 @@ function parseTaskRow(row: any) {
 }
 
 // GET /api/projects/:projectId/tasks
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const project = await db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
@@ -49,10 +50,10 @@ router.get('/', async (req: Request, res: Response) => {
   }
 
   return res.json(rows.map(parseTaskRow));
-});
+}));
 
 // POST /api/projects/:projectId/tasks
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', asyncHandler(async (req: Request, res: Response) => {
   const project = await db.select().from(projects).where(eq(projects.id, req.params.projectId)).get();
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
@@ -97,12 +98,12 @@ router.post('/', async (req: Request, res: Response) => {
   };
   await db.insert(tasks).values(task).run();
   return res.status(201).json(parseTaskRow(task));
-});
+}));
 
 // PATCH /api/projects/:projectId/tasks/reorder
 // Body: { columns: { [status: string]: string[] } }
 // Each key is a status, value is ordered array of task IDs
-router.patch('/reorder', async (req: Request, res: Response) => {
+router.patch('/reorder', asyncHandler(async (req: Request, res: Response) => {
   const { columns } = req.body as { columns: Record<string, string[]> };
   if (!columns) return res.status(400).json({ error: 'columns is required' });
 
@@ -122,10 +123,10 @@ router.patch('/reorder', async (req: Request, res: Response) => {
     .orderBy(asc(tasks.position))
     .all();
   return res.json(rows.map(parseTaskRow));
-});
+}));
 
 // GET /api/projects/:projectId/tasks/:taskId
-router.get('/:taskId', async (req: Request, res: Response) => {
+router.get('/:taskId', asyncHandler(async (req: Request, res: Response) => {
   const task = await db
     .select()
     .from(tasks)
@@ -133,10 +134,10 @@ router.get('/:taskId', async (req: Request, res: Response) => {
     .get();
   if (!task) return res.status(404).json({ error: 'Task not found' });
   return res.json(parseTaskRow(task));
-});
+}));
 
 // PUT /api/projects/:projectId/tasks/:taskId
-router.put('/:taskId', async (req: Request, res: Response) => {
+router.put('/:taskId', asyncHandler(async (req: Request, res: Response) => {
   const task = await db
     .select()
     .from(tasks)
@@ -160,10 +161,10 @@ router.put('/:taskId', async (req: Request, res: Response) => {
   };
   await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
   return res.json(parseTaskRow(updated));
-});
+}));
 
 // DELETE /api/projects/:projectId/tasks/:taskId
-router.delete('/:taskId', async (req: Request, res: Response) => {
+router.delete('/:taskId', asyncHandler(async (req: Request, res: Response) => {
   const task = await db
     .select()
     .from(tasks)
@@ -172,10 +173,10 @@ router.delete('/:taskId', async (req: Request, res: Response) => {
   if (!task) return res.status(404).json({ error: 'Task not found' });
   await db.delete(tasks).where(eq(tasks.id, req.params.taskId)).run();
   return res.status(204).send();
-});
+}));
 
 // PATCH /api/projects/:projectId/tasks/:taskId/status
-router.patch('/:taskId/status', async (req: Request, res: Response) => {
+router.patch('/:taskId/status', asyncHandler(async (req: Request, res: Response) => {
   const task = await db
     .select()
     .from(tasks)
@@ -191,6 +192,6 @@ router.patch('/:taskId/status', async (req: Request, res: Response) => {
   const updated = { ...task, status, updated_at: now() };
   await db.update(tasks).set(updated).where(eq(tasks.id, req.params.taskId)).run();
   return res.json(parseTaskRow(updated));
-});
+}));
 
 export default router;

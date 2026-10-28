@@ -3,9 +3,10 @@ import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { projects, tasks } from '../db/schema';
 
+import { asyncHandler } from '../lib/async-handler';
 const router = Router();
 
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   try {
     const activeProjects = await db.select().from(projects).where(eq(projects.status, 'active')).all();
 
@@ -70,6 +71,6 @@ router.get('/', async (_req: Request, res: Response) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to load dashboard' });
   }
-});
+}));
 
 export default router;
