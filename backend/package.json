@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "migrate": "ts-node src/db/migrate.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "confluence": "ts-node src/scripts/confluence-plan.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.6.0",

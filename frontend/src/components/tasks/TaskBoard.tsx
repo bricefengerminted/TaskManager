@@ -5,6 +5,7 @@ import type { Task, TaskStatus } from '@shared/types';
 import { useApp } from '../../context/AppContext';
 import { PRIORITY_COLORS, PRIORITY_LABELS, formatDate, isOverdue, extractUrls, openUrl } from '../../utils';
 import { Lightbox } from '../Lightbox';
+import { isSectionTitle, sectionName } from '@shared/task-sections';
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-slate-100' },
@@ -81,11 +82,12 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
       <div className="flex gap-4 p-6 h-full min-w-fit">
         {COLUMNS.map((col) => {
           const colTasks = getColumnTasks(col.id);
+          const cardCount = colTasks.filter(t => !isSectionTitle(t.title)).length;
           return (
             <div key={col.id} className="flex flex-col w-72 flex-shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm text-slate-700">{col.label}</h3>
-                <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">{colTasks.length}</span>
+                <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">{cardCount}</span>
               </div>
 
               <Droppable droppableId={col.id}>
@@ -96,8 +98,7 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                     className={`flex-1 overflow-y-auto rounded-lg p-2 min-h-[200px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50 border-2 border-dashed border-indigo-200' : col.color}`}
                   >
                     {colTasks.map((task, index) => {
-                      const isSection = task.title.startsWith('━━━') || task.title.match(/^[━─═—]{2,}/);
-                      const sectionName = isSection ? task.title.replace(/[━─═—\s]/g, '') : '';
+                      const isSection = isSectionTitle(task.title);
                       return (
                       <Draggable key={task.id} draggableId={task.id} index={index}>
                         {(provided, snapshot) => isSection ? (
@@ -109,7 +110,7 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                           >
                             <div className="flex items-center gap-2 px-1 py-1">
                               <div className="h-px flex-1 bg-slate-300" />
-                              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">{sectionName}</span>
+                              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">{sectionName(task.title)}</span>
                               <div className="h-px flex-1 bg-slate-300" />
                             </div>
                           </div>
@@ -197,7 +198,7 @@ export function TaskBoard({ projectId, tasks, onEditTask }: Props) {
                     })}
                     {provided.placeholder}
 
-                    {colTasks.length === 0 && (
+                    {cardCount === 0 && (
                       <div className="flex items-center justify-center h-20 text-xs text-slate-400">
                         Drop tasks here
                       </div>

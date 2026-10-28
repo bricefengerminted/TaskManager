@@ -1,0 +1,130 @@
+{
+  "planPath": "docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md",
+  "tasks": [
+    {
+      "id": 1,
+      "subject": "Task 1: ADF builders and generated-section markers",
+      "status": "pending",
+      "description": "**Goal:** A tiny ADF toolkit plus the marker contract: generated sections can be found and fully replaced without touching anything else on the page.\n\n**Verify:** `cd backend && npx vitest run src/test/confluence-adf.test.ts` → all pass.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 1: ADF builders and generated-section markers.\n\n```json:metadata\n{\"files\": [\"shared/confluence-adf.ts\", \"backend/src/test/confluence-adf.test.ts\"], \"verifyCommand\": \"`cd backend && npx vitest run src/test/confluence-adf.test.ts` → all pass.\", \"acceptanceCriteria\": [\"`replaceGenerated` swaps the content of exactly one marked section and leaves every other top-level node deep-equal to the input.\", \"It finds sections in both marker styles (`details` macro with label, or expand with fixed title).\", \"A missing marker returns `{ replaced: false, reason: 'missing' }`; two markers for the same section return `reason: 'duplicate'`; neither case changes the doc.\", \"The input doc is never mutated.\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: Titles and the page tree",
+      "status": "pending",
+      "description": "**Goal:** Deterministic, space-unique titles and an ordered list of every page the tree needs, parents before children.\n\n**Verify:** `cd backend && npx vitest run` → all pass.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 2: Titles and the page tree.\n\n```json:metadata\n{\"files\": [\"shared/confluence-tree.ts\", \"backend/src/lib/doc-check.ts:7-12\", \"backend/src/test/confluence-tree.test.ts\"], \"verifyCommand\": \"`cd backend && npx vitest run` → all pass.\", \"acceptanceCriteria\": [\"`hubTitle('WW', 'WW - Modular Elements ')` → `[WW] Modular Elements — Hub`; `[OI] Messaging Center` → `[OI] Messaging Center — Hub`.\", \"`halfTitle('2026-H2')` → `H2'26`; team-half title is `H2'26 · Online Invites`.\", \"`planTree` puts every node after its parent, creates team-half pages only where items exist, sends items with no `dev_start_half` to `Unscheduled · <Team>`, skips stages outside roadmap/build/measure, and throws on two items with the same hub title.\", \"Adopted items keep the existing page ID on their hub node; off-roadmap hubs go under `Unscheduled · <Team>` with `offRoadmap: true`.\", \"`findTitleCollisions` lists planned titles that already exist in the space, except a node's own adopted page.\", \"Existing backend tests still pass after the `TEAM_ABBREV` re-export.\"]}\n```",
+      "blockedBy": [
+        1
+      ]
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Hub and roll-up page templates",
+      "status": "pending",
+      "description": "**Goal:** `renderHubDoc` produces the hub page body: generated Status and Doc checklist sections, then the hand-written Links, Decisions log, Open questions and Settings sections. Roll-up pages get one generated section.\n\n**Verify:** `cd backend && npx vitest run src/test/confluence-hub.test.ts` → all pass.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 3: Hub and roll-up page templates.\n\n```json:metadata\n{\"files\": [\"shared/confluence-hub.ts\", \"backend/src/test/confluence-hub.test.ts\"], \"verifyCommand\": \"`cd backend && npx vitest run src/test/confluence-hub.test.ts` → all pass.\", \"acceptanceCriteria\": [\"The hub has, in order: an off-roadmap warning (only when off-roadmap), `Status` + generated status, `Doc checklist` + generated checklist, `Links`, `Decisions log`, `Open questions`, `Settings`, and `Background (from the original page)` only when adopted content is passed.\", \"The Status table shows stage, status, team, PM, Eng, UX, Jira key and every phase's dates. Missing values show `—`; Eng and UX show `❓ Not in roadmap snapshot`.\", \"The checklist has one row per evaluated doc row, with emoji status, due date, rule and link; `cant_date` shows `❓ Can't date: needs <field>`.\", \"`itemDocRows` evaluates an item with no TaskManager project from roadmap data alone, waiving `one_pager` (\\\"predates system\\\") for items in build or measure.\", \"Settings shows doc mode, the customer-facing flag and waivers in a two-column table.\", \"Re-rendering the generated sections of a hub with `replaceGenerated` leaves the hand-written sections untouched (round-trip test).\"]}\n```",
+      "blockedBy": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: One-pager template and decision block",
+      "status": "pending",
+      "description": "**Goal:** A Confluence one-pager body that opens with a Decision block (Go / No-go / Parked, date, reason, revisit-by), and a parser the doc check will use to read it.\n\n**Verify:** `cd backend && npx vitest run src/test/confluence-one-pager.test.ts` → all pass.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 4: One-pager template and decision block.\n\n```json:metadata\n{\"files\": [\"shared/confluence-one-pager.ts\", \"backend/src/test/confluence-one-pager.test.ts\"], \"verifyCommand\": \"`cd backend && npx vitest run src/test/confluence-one-pager.test.ts` → all pass.\", \"acceptanceCriteria\": [\"The one-pager starts with a Page Properties block labelled `one-pager-decision` holding a Decision / Date / Reason / Revisit by table, defaulting to `Pending`.\", \"The rest follows the existing one-pager template: problem, proposal, why now, expected impact, level of effort, key risk, stakeholders, ask, related.\", \"`parseDecision` reads `Go`, `No-go` (also `No go`, `nogo`), `Parked` and `Pending`, case-insensitively.\", \"It reports errors, and returns `decision: null`, when a decision has no date or reason, when Parked has no revisit-by date, or when a date isn't `YYYY-MM-DD`.\", \"A page without the block returns `{ decision: null, errors: ['no decision block'] }`.\"]}\n```",
+      "blockedBy": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: PRD matching and the migration list",
+      "status": "pending",
+      "description": "**Goal:** Turn the Confluence inventory into a numbered approval list covering every move, rename, adoption, title conflict and banner. PRD matches are proposals, and the On-Canvas guard is enforced in code.\n\n**Verify:** `cd backend && npx vitest run src/test/confluence-migration.test.ts` → all pass.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 5: PRD matching and the migration list.\n\n```json:metadata\n{\"files\": [\"shared/confluence-migration.ts\", \"backend/src/test/confluence-migration.test.ts\"], \"verifyCommand\": \"`cd backend && npx vitest run src/test/confluence-migration.test.ts` → all pass.\", \"acceptanceCriteria\": [\"`normalizeTitle` handles all three title styles (`[OI] X PRD`, `OI: X`, `PRD - X`, `X — Brief/PRD`) → `{ prefix, core }`.\", \"`proposePrdMatches` matches by normalized name within the same team. An exact core match beats containment; two or more candidates are `ambiguous`; none is `none`.\", \"Page `4286087221` is never matched to a WW item, even with an exact name match (`reason: 'blocked'`).\", \"`buildMigrationList` emits a `move_rename` row per matched PRD (new title `[XX] <name> — Brief/PRD`, parent `hub:<itemId>`), `leave` rows for unmatched, ambiguous and blocked PRDs, an `adopt_as_hub` row per adopted draft, an `off_roadmap_hub` row per off-roadmap draft, a `rename_conflict` row per title collision, and a `banner` row per legacy page.\", \"`renderMigrationMarkdown` renders one table with an empty `Approve` column, and the On-Canvas row says why it is held back.\"]}\n```",
+      "blockedBy": [
+        2
+      ]
+    },
+    {
+      "id": 6,
+      "subject": "Task 6: Planning CLI and manifest",
+      "status": "pending",
+      "description": "**Goal:** One command builds the full plan (nodes with bodies, collisions, migration list) from the TaskManager API and the inventory file, and small subcommands let Claude step through creation one page at a time, recording each page ID.\n\n**Verify:** `cd backend && npx vitest run src/test/confluence-plan.test.ts` → all pass; `npx tsc --noEmit -p .` → no errors.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 6: Planning CLI and manifest.\n\n```json:metadata\n{\"files\": [\"shared/confluence-plan.ts\", \"backend/src/scripts/confluence-plan.ts\", \"docs/confluence/README.md\", \"backend/package.json\", \".gitignore\", \"backend/src/test/confluence-plan.test.ts\"], \"verifyCommand\": \"`cd backend && npx vitest run src/test/confluence-plan.test.ts` → all pass; `npx tsc --noEmit -p .` → no errors.\", \"acceptanceCriteria\": [\"`buildPlan` returns every tree node with an ADF `body`. Hubs of linked projects use the project's `/api/docs/health` rows and settings; other hubs use `itemDocRows`.\", \"`nextNode` returns the first node with no page ID whose parent has one (or is the root), and skips adopted hubs (those are migration rows, not creates).\", \"`recordNode` writes `{ pageId, status, url }` for a key and refuses an unknown key.\", \"`npm run confluence -- plan` writes `docs/confluence/tree-plan.json`, `docs/confluence/migration-list.md` and (if missing) `docs/confluence/manifest.json`, and prints counts plus collisions.\", \"`npm run confluence -- next` prints the next node's key, title, parent page ID and the body file path; `body <key>` writes the ADF to a temp file; `record <key> <pageId> <draft|current> <url>` updates the manifest.\"]}\n```",
+      "blockedBy": [
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": 7,
+      "subject": "Task 7: Confluence inventory (read-only)",
+      "status": "pending",
+      "description": "**Goal:** `docs/confluence/inventory/inventory.json` holds what the plan needs from Confluence, read with one Atlassian call at a time and no writes.\n\n**Verify:** `node -e \"const i=require('./docs/confluence/inventory/inventory.json'); console.log(i.existing.length, i.prdPages.length, Object.keys(i.adopt).length + i.offRoadmap.length)\"` → a few hundred titles, ~15 PRDs, `4`.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 7: Confluence inventory (read-only).\n\n```json:metadata\n{\"files\": [\"docs/confluence/inventory/inventory.json\"], \"verifyCommand\": \"`node -e \\\"const i=require('./docs/confluence/inventory/inventory.json'); console.log(i.existing.length, i.prdPages.length, Object.keys(i.adopt).length + i.offRoadmap.length)\\\"` → a few hundred titles, ~15 PRDs, `4`.\", \"acceptanceCriteria\": [\"`cloudId` and `spaceId` (`221937685`) are set.\", \"`existing` lists every page and folder title in the space (paginate until done).\", \"`prdPages` lists the ~15 children of folder `3664740359` that are PRDs (Brice confirms which children count).\", \"The four drafts `4198498306`, `4226482184`, `4225269790`, `4225335315` are each either in `adopt` (roadmap item id → page id) or in `offRoadmap` (IDEA-845, IDEA-852), with Brice confirming every mapping. `adoptedTitles` has their current titles.\", \"`legacy` lists the H1'25 and H2'25 folder/pages and the old per-team canonical docs Brice wants bannered.\", \"No Atlassian write tool was called.\"]}\n```",
+      "blockedBy": [
+        6
+      ]
+    },
+    {
+      "id": 8,
+      "subject": "Task 8: Build the plan and get the migration list approved",
+      "status": "pending",
+      "description": "**Goal:** Brice has reviewed the tree, the open decisions and every migration row, and their answers are recorded in `docs/confluence/migration-list.md`.\n\n**Verify:** `grep -c '| \\[ \\] |' docs/confluence/migration-list.md` → `0`.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 8: Build the plan and get the migration list approved.\n\n```json:metadata\n{\"files\": [\"docs/confluence/manifest.json\", \"docs/confluence/migration-list.md\", \"docs/confluence/tree-plan.json\"], \"verifyCommand\": \"`grep -c '| \\\\[ \\\\] |' docs/confluence/migration-list.md` → `0`.\", \"acceptanceCriteria\": [\"`npm run confluence -- plan` succeeded; its counts are in the summary shown to Brice (~45 nodes, 22 hubs, collisions, migration rows).\", \"Brice answered: where `Roadmap Projects` goes (top level, or under which page → `rootParentId` in the manifest); the \\\"Decisions this plan makes\\\" list above; and each title collision.\", \"Every row in `migration-list.md` is marked `[x]` (approved) or `[-]` (skip), with Brice's edits applied (for example a different PRD match). `4286087221` is not `move_rename` to any WW hub.\", \"The approved list is committed.\"]}\n```",
+      "blockedBy": [
+        6,
+        7
+      ]
+    },
+    {
+      "id": 9,
+      "subject": "Task 9: Marker round-trip spike (one draft page)",
+      "status": "pending",
+      "description": "**Goal:** Prove, on a single draft, that the Page Properties marker survives create → fetch → rewrite → fetch with hand-written content intact, and that a draft can be a parent of a draft. Decide `MARKER_STYLE`.\n\n**Verify:** `cd backend && npx vitest run src/test/confluence-adf.test.ts src/test/confluence-hub.test.ts` → pass.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 9: Marker round-trip spike (one draft page).\n\n```json:metadata\n{\"files\": [\"shared/confluence-adf.ts\"], \"verifyCommand\": \"`cd backend && npx vitest run src/test/confluence-adf.test.ts src/test/confluence-hub.test.ts` → pass.\", \"acceptanceCriteria\": [\"Brice approved creating the test draft (and its child) before any call.\", \"After `updateConfluencePage` with a rewritten status section, a fresh `getConfluencePage` (ADF) shows the new status, the marker in the same form, and the hand-written Links paragraph unchanged.\", \"We know whether `createConfluencePage { status: \\\"draft\\\", parentId: <draft id> }` works.\", \"`MARKER_STYLE` is set to the form that round-tripped; tests pass.\", \"Brice has been asked to delete the two test drafts in the UI (Claude doesn't delete).\"]}\n```",
+      "blockedBy": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": 10,
+      "subject": "Task 10: Scaffold the tree as drafts",
+      "status": "pending",
+      "description": "**Goal:** Every planned page that isn't adopted exists as a draft in space `221937685`, recorded in the manifest.\n\n**Verify:** `node -e \"const m=require('./docs/confluence/manifest.json'); const v=Object.values(m.nodes); console.log(v.filter(n=>!n.pageId).length, v.filter(n=>n.status==='draft').length)\"` → `0` and the count of non-adopted nodes.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 10: Scaffold the tree as drafts.\n\n```json:metadata\n{\"files\": [\"docs/confluence/manifest.json\"], \"verifyCommand\": \"`node -e \\\"const m=require('./docs/confluence/manifest.json'); const v=Object.values(m.nodes); console.log(v.filter(n=>!n.pageId).length, v.filter(n=>n.status==='draft').length)\\\"` → `0` and the count of non-adopted nodes.\", \"acceptanceCriteria\": [\"Brice approved the batch with its count (\\\"create N draft pages\\\") before the first call.\", \"`npm run confluence -- next` prints \\\"Nothing left to create.\\\"\", \"Every created page is `status: \\\"draft\\\"`, with the exact planned title and parent.\", \"No page was created twice: before each create whose previous attempt errored, a CQL title search confirmed the page didn't exist.\", \"If drafts can't parent drafts (Task 9), Brice chose one of the two fallbacks below before anything was published.\"]}\n```",
+      "blockedBy": [
+        8,
+        9
+      ]
+    },
+    {
+      "id": 11,
+      "subject": "Task 11: Execute the approved migration",
+      "status": "pending",
+      "description": "**Goal:** Every `[x]` row in the migration list has been carried out, one call at a time; `[-]` rows are untouched.\n\n**Verify:** For three sampled rows, `getConfluencePage` shows the new title and parent. `grep -c 'Done' docs/confluence/migration-list.md` = number of `[x]` rows.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 11: Execute the approved migration.\n\n```json:metadata\n{\"files\": [\"docs/confluence/manifest.json\", \"docs/confluence/migration-list.md\"], \"verifyCommand\": \"For three sampled rows, `getConfluencePage` shows the new title and parent. `grep -c 'Done' docs/confluence/migration-list.md` = number of `[x]` rows.\", \"acceptanceCriteria\": [\"Only `[x]` rows ran. Each row's result (done, or failed with the reason) is noted in `migration-list.md`.\", \"Moved PRDs keep their page IDs and get their new title and parent.\", \"Adopted drafts are in the team space under their planned parent, titled as the hub, with the hub template body and their original content under \\\"Background (from the original page)\\\". Off-roadmap hubs show the off-roadmap panel.\", \"`4286087221` was not moved under any WW hub.\", \"No body was sent that wasn't fetched in the same row's steps (hard rule 7).\"]}\n```",
+      "blockedBy": [
+        8,
+        10
+      ]
+    },
+    {
+      "id": 12,
+      "subject": "Task 12: Hub URLs back into TaskManager",
+      "status": "pending",
+      "description": "**Goal:** Linked projects carry their hub URL, so `get_doc_health` shows the hub row and clears the `no_hub` flag. Unlinked items keep their hub in the manifest until their project exists.\n\n**Verify:** `get_doc_health` for both projects → hub row present, flags exclude `no_hub`.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 12: Hub URLs back into TaskManager.\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"`get_doc_health` for both projects → hub row present, flags exclude `no_hub`.\", \"acceptanceCriteria\": [\"Brice confirmed each `link_project` call before it was made.\", \"IDEA-850 (`oi-4`) and IDEA-932 (`id-1773091064966-jyqedxkup`) have `hub_url` set to their hub's URL from the manifest. Existing waivers were not dropped (`link_project` without `waivers` leaves them alone).\", \"`get_doc_health { project_id }` shows the hub row as 📝 Draft while the hub is a draft (a `draftId=`/`resumedraft.action` URL), and the `no_hub` flag is gone.\", \"The other 20 hubs are listed for Brice as \\\"hub ready, no TaskManager project yet\\\"; none is created or linked in bulk.\"]}\n```",
+      "blockedBy": [
+        10,
+        11
+      ]
+    },
+    {
+      "id": 13,
+      "subject": "Task 13: Publish, with approval",
+      "status": "pending",
+      "description": "**Goal:** Pages Brice approves are published, parents before children, and TaskManager hub URLs switch to the published URLs.\n\n**Verify:** `get_doc_health` for IDEA-850 and IDEA-932 → hub `done`. Manifest `status` is `current` for exactly the approved set.\n\nSee docs/superpowers/plans/2026-10-28-confluence-tree-and-hubs.md → Task 13: Publish, with approval.\n\n```json:metadata\n{\"files\": [\"docs/confluence/manifest.json\"], \"verifyCommand\": \"`get_doc_health` for IDEA-850 and IDEA-932 → hub `done`. Manifest `status` is `current` for exactly the approved set.\", \"acceptanceCriteria\": [\"Brice approved a named set (\\\"all structure pages\\\", \\\"these hubs\\\", or \\\"everything\\\") before the first publish call.\", \"Pages were published parents first. Every published page has `status: \\\"current\\\"` in the manifest and its published URL.\", \"Linked projects' `hub_url` was updated to the published URL (with Brice's yes), and `get_doc_health` shows the hub row ✅ Done.\", \"Nothing outside the approved set was published.\"]}\n```",
+      "blockedBy": [
+        11,
+        12
+      ]
+    }
+  ],
+  "lastUpdated": "2026-10-28T00:00:00Z"
+}
