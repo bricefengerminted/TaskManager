@@ -78,8 +78,9 @@ Proposal (one-pager) ──► Decision ──┬─ Go      ─► on roadmap �
     the hub is created and the one-pager moves under it.
   - The one-pager's link is written to the item's `onePager` field (write-back).
   - The full matrix starts from that point.
-- **Stopped later.** If a roadmap item moves to `on-hold` or `wont-do`, every doc not yet due
-  becomes ➖ *Not required*. Docs already written stay.
+- **Stopped later.** If a roadmap item moves to `on-hold` or `wont-do`, every doc that isn't
+  done becomes ➖ *Not required*, including overdue ones, since there's no point chasing them.
+  Docs already written stay ✅.
 
 ## 2. Doc matrix
 
@@ -108,7 +109,9 @@ label, a `requiredWhen` predicate, a due rule with an optional fallback, and how
   before its due date, whichever is earlier. Inactive rows are shown but never flagged.
 - **Statuses.**
   - ✅ **Done:** the page is published (or the link is set) and the TaskManager task is done. For
-    `experiment_brief.results`, the brief's *Results* section must also be non-empty.
+    `experiment_brief.results`, the brief's *Results* section must also be non-empty. Link-only
+    rows (`hub`, `figma`, `jira_epic`) are done as soon as the link is set, and the check marks
+    their task done. Proposals' one-pagers are done once published.
   - 📝 **Draft:** the page exists but is unpublished.
   - ⏳ **Due soon:** due within 14 days.
   - 🔴 **Overdue:** past the due date and not ✅.
@@ -185,9 +188,10 @@ Roadmap Projects                          ← Start Here: active projects, doc h
   `parent_team_id`, `stage`, `status`, `pm_name`, `jira_key`, `phases` (JSON), `dev_start_half`,
   `links` (JSON), `hidden`, `updated_at`, `synced_at`.
 - **New columns on `projects`:** `roadmap_item_id` (nullable), `team` (OI | WW | ABK | DP),
-  `stage` (proposal | roadmap | build | measure | done | not_pursued | on_hold), `decision`
-  (go | no_go | parked | null), `decision_date`, `decision_reason`, `revisit_by`, `doc_mode`
-  (full | one_pager_only), `hub_url`, `one_pager_url`.
+  `docs_stage` (null = not tracked | proposal | roadmap | not_pursued; the roadmap stage itself
+  is read from `roadmap_items`), `decision` (go | no_go | parked | null), `decision_date`,
+  `decision_reason`, `revisit_by`, `doc_mode` (full | one_pager_only), `customer_facing`,
+  `waivers` (JSON), `hub_url`, `one_pager_url`.
 - **New columns on `tasks`:**
   - `doc_key` (a matrix row; nullable, since non-doc tasks have none);
   - `doc_status` (written by the check);
@@ -204,8 +208,9 @@ Roadmap Projects                          ← Start Here: active projects, doc h
 - `POST /api/docs/apply`: the check's write step. Upserts doc tasks by `(project_id, doc_key)`,
   sets due dates and `doc_status`, and writes an activity log entry for each change.
 
-**MCP tools:** `sync_roadmap`, `get_doc_health`, `apply_doc_check`, `set_project_decision`. New
-projects and roadmap matches go through the Inbox as proposals.
+**MCP tools:** `sync_roadmap`, `get_doc_health`, `apply_doc_check`, `set_project_decision`,
+`link_project`. New projects and roadmap matches go through the Inbox as proposals. Until the
+Inbox exists, Claude asks Brice in chat before calling `link_project` or creating a project.
 
 **UI**
 

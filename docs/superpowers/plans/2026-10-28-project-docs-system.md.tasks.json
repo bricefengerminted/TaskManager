@@ -1,0 +1,122 @@
+{
+  "planPath": "docs/superpowers/plans/2026-10-28-project-docs-system.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 0: Clear the working tree",
+      "status": "pending",
+      "description": "**Goal:** Nothing uncommitted overlaps the files this plan edits.\n\nSee plan section \"Task 0: Clear the working tree\".\n\n```json:metadata\n{\"files\": [\"backend/package-lock.json\", \"frontend/src/api/client.ts\"], \"verifyCommand\": \"`git status --short frontend/src backend/package.json backend/package-lock.json` \\u2192 no output.\", \"acceptanceCriteria\": [\"`git status --short` shows no modified tracked files under `frontend/src` or `backend/`.\"]}\n```"
+    },
+    {
+      "id": 1,
+      "subject": "Task 1: Backend test harness (Vitest + supertest)",
+      "status": "pending",
+      "description": "**Goal:** `npm --prefix backend test` runs Vitest against a throwaway SQLite DB. This is the same harness as control-plane Task 1. **If `backend/vitest.config.ts` already exists, skip this task.**\n\nSee plan section \"Task 1: Backend test harness (Vitest + supertest)\".\n\n```json:metadata\n{\"files\": [\"backend/.gitignore\", \"backend/package.json\", \"backend/src/index.ts\", \"backend/src/test/sanity.test.ts\", \"backend/src/test/setup.ts\", \"backend/vitest.config.ts\"], \"verifyCommand\": \"`npm --prefix backend test` \\u2192 `2 passed`.\", \"acceptanceCriteria\": [\"`npm --prefix backend test` passes the 2 sanity tests.\", \"Importing the app in tests doesn't bind a port.\", \"`test-taskmanager.db*` is git-ignored.\"]}\n```",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: Fix the frontend typecheck baseline",
+      "status": "pending",
+      "description": "**Goal:** `npx tsc -b` in `frontend/` passes. Today it fails because `@shared/*` isn't in the tsconfig paths (Vite has the alias, tsc doesn't), and 3 unused-code errors remain.\n\nSee plan section \"Task 2: Fix the frontend typecheck baseline\".\n\n```json:metadata\n{\"files\": [\"frontend/src/components/dashboard/Dashboard.tsx\", \"frontend/src/components/tasks/TaskForm.tsx\", \"frontend/src/components/tasks/TaskList.tsx\", \"frontend/tsconfig.app.json\"], \"verifyCommand\": \"`cd frontend && npx tsc -b && npx vite build` \\u2192 exit 0.\", \"acceptanceCriteria\": [\"`cd frontend && npx tsc -b` exits 0.\", \"`npx vite build` still succeeds.\"]}\n```",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Doc matrix module",
+      "status": "pending",
+      "description": "**Goal:** `shared/doc-matrix.ts` implements the spec's matrix and status rules as pure functions, fully unit-tested.\n\nSee plan section \"Task 3: Doc matrix module\".\n\n```json:metadata\n{\"files\": [\"backend/src/test/doc-matrix.test.ts\", \"shared/doc-matrix.ts\"], \"verifyCommand\": \"`npm --prefix backend test -- doc-matrix` \\u2192 all pass.\", \"acceptanceCriteria\": [\"The rows match the spec table: keys, anchors, offsets and fallbacks.\", \"Status precedence:\", \"Link-only rows (`hub`, `figma`, `jira_epic`) are done when the link is set. Other rows need published-or-linked AND the task done. `experiment_brief.results` also needs `results_filled`.\", \"A row is active when its phase \\u2264 the stage's phase, or once `today \\u2265 due \\u2212 28d`.\", \"Stopped (`on-hold`, `wont-do` or decision `no_go`): every row that isn't done is `waived`.\"]}\n```",
+      "blockedBy": [
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: Data model, migration and shared types",
+      "status": "pending",
+      "description": "**Goal:** The DB has `roadmap_items`, `activity`, the doc-system columns on `projects` and the doc columns on `tasks`. Existing lifecycle tasks are backfilled with a `doc_key`. The shared types expose the new fields.\n\nSee plan section \"Task 4: Data model, migration and shared types\".\n\n```json:metadata\n{\"files\": [\"backend/src/db/index.ts\", \"backend/src/db/migrate.ts\", \"backend/src/db/schema.ts\", \"backend/src/lib/activity.ts\", \"backend/src/test/migrate.test.ts\", \"shared/types.ts\"], \"verifyCommand\": \"`npm --prefix backend test -- migrate` \\u2192 pass; `npx tsc --noEmit -p backend` \\u2192 exit 0.\", \"acceptanceCriteria\": [\"Running the migrations twice is harmless.\", \"A unique index on `tasks(project_id, doc_key)` applies where `doc_key IS NOT NULL`.\", \"Backfill:\"]}\n```",
+      "blockedBy": [
+        3
+      ]
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: Roadmap sync API",
+      "status": "pending",
+      "description": "**Goal:** Claude can push a roadmap snapshot (MCP `list_roadmap_items` output) into `roadmap_items`. The response suggests matches to existing projects but never links them.\n\nSee plan section \"Task 5: Roadmap sync API\".\n\n```json:metadata\n{\"files\": [\"backend/src/index.ts\", \"backend/src/routes/roadmap.ts\", \"backend/src/test/helpers.ts\", \"backend/src/test/roadmap.test.ts\"], \"verifyCommand\": \"`npm --prefix backend test -- roadmap` \\u2192 pass.\", \"acceptanceCriteria\": [\"`POST /api/roadmap/sync {items}` upserts each item, keeps `first_seen_at` on re-sync, and returns `{ upserted, suggestions, unlinked }`.\", \"A suggestion is an unlinked item whose Jira key appears in an untracked or proposal project's name as `[IDEA-n]`, or whose name matches exactly (case-insensitive).\", \"A body without an `items` array \\u2192 400.\", \"`GET /api/roadmap` returns the parsed items with `project_id`.\", \"Each sync writes one `roadmap_synced` activity row.\"]}\n```",
+      "blockedBy": [
+        4
+      ]
+    },
+    {
+      "id": 6,
+      "subject": "Task 6: Project doc fields API",
+      "status": "pending",
+      "description": "**Goal:** Projects carry the doc-system fields. `PATCH /api/projects/:id/docs` links a roadmap item, records a decision, and sets the doc mode, waivers and URLs. The project list includes each project's half and roadmap stage.\n\nSee plan section \"Task 6: Project doc fields API\".\n\n```json:metadata\n{\"files\": [\"backend/src/lib/doc-check.ts\", \"backend/src/routes/projects.ts\", \"backend/src/test/projects-docs.test.ts\"], \"verifyCommand\": \"`npm --prefix backend test -- projects-docs` \\u2192 pass.\", \"acceptanceCriteria\": [\"Linking sets `docs_stage='roadmap'` and defaults `team` from the item's team name (OI/WW/ABK/DP).\", \"An unknown item \\u2192 400. An item already linked to another project \\u2192 409.\", \"Decision rules:\", \"Waiver keys must be doc keys with non-empty reasons; otherwise 400.\", \"Responses return `waivers` as an object and `customer_facing` as a boolean. `GET /api/projects` items include `dev_start_half` and `roadmap_stage`.\", \"Every PATCH logs `project_docs_updated`.\"]}\n```",
+      "blockedBy": [
+        5
+      ]
+    },
+    {
+      "id": 7,
+      "subject": "Task 7: Docs health and apply API",
+      "status": "pending",
+      "description": "**Goal:**\n- `GET /api/docs/health` returns every tracked project's doc rows, flags and a status summary.\n- `POST /api/docs/apply` upserts one task per required doc, stores page evidence, re-dates tasks when roadmap dates change, completes link-only tasks, and logs every change.\n\nSee plan section \"Task 7: Docs health and apply API\".\n\n```json:metadata\n{\"files\": [\"backend/src/index.ts\", \"backend/src/routes/docs.ts\", \"backend/src/test/docs.test.ts\"], \"verifyCommand\": \"`npm --prefix backend test -- docs` \\u2192 pass.\", \"acceptanceCriteria\": [\"First apply on Modular Elements (today 2026-10-28) creates 8 tasks. Titles are `Doc: <label>`, `doc_type` is the key before the dot, and `due_rule` is set. The PRD is due `2026-07-21`.\", \"A second apply creates nothing and re-dates nothing.\", \"After `build.start` moves to `2026-08-18`, apply re-dates the PRD from 07-21 to 08-04 and logs `doc_due_changed`.\", \"Evidence for the PRD plus marking its task done \\u2192 health shows `prd` as `done`.\", \"A link-only row with its link set \\u2192 apply marks the task done and lists it in `completed`.\", \"Health filters by `team`, `half`, `status` and `project_id`, accepts `today`, and excludes untracked and `not_pursued` projects.\", \"Apply on an untracked project \\u2192 400.\"]}\n```",
+      "blockedBy": [
+        6
+      ]
+    },
+    {
+      "id": 8,
+      "subject": "Task 8: MCP tools",
+      "status": "pending",
+      "description": "**Goal:** Claude can sync the roadmap, read doc health, apply check results, record decisions and link projects. Each write is tagged `X-Actor: claude`.\n\nSee plan section \"Task 8: MCP tools\".\n\n```json:metadata\n{\"files\": [\"mcp-server/src/index.ts\"], \"verifyCommand\": \"`npm --prefix mcp-server run build` \\u2192 exit 0. Then, with the backend running (`npm run dev:backend`), run `curl -s localhost:3001/api/docs/health | head -c 200` \\u2192 JSON.\", \"acceptanceCriteria\": [\"New tools `sync_roadmap`, `get_doc_health`, `apply_doc_check`, `set_project_decision` and `link_project` are registered.\", \"Every API call sends `X-Actor: claude`.\", \"`link_project`'s description says it may only be called after the user approves the match.\", \"`npm --prefix mcp-server run build` succeeds.\"]}\n```",
+      "blockedBy": [
+        7
+      ]
+    },
+    {
+      "id": 9,
+      "subject": "Task 9: Docs panel on the project page",
+      "status": "pending",
+      "description": "**Goal:** Each project page shows its doc checklist above the board.\n- **Roadmap projects:** half, team, stage, hub link, a one-pager-only switch, and one row per doc with its status chip, due date and rule.\n- **Proposals:** the Go / No-go / Parked buttons.\n- **Untracked projects:** a \"Track as proposal\" button.\n\nSee plan section \"Task 9: Docs panel on the project page\".\n\n```json:metadata\n{\"files\": [\"frontend/src/api/client.ts\", \"frontend/src/components/docs/DocStatusChip.tsx\", \"frontend/src/components/docs/DocsPanel.tsx\", \"frontend/src/components/projects/ProjectDetail.tsx\", \"frontend/src/utils/index.ts\"], \"verifyCommand\": \"`cd frontend && npx tsc -b && npx vite build` \\u2192 exit 0. Then the manual check in Step 6.\", \"acceptanceCriteria\": [\"`npx tsc -b` and `npx vite build` pass.\", \"Linked project: rows match `GET /api/docs/health?project_id=\\u2026`.\", \"Toggling one-pager-only removes the Brief/PRD row.\"]}\n```",
+      "blockedBy": [
+        2,
+        8
+      ]
+    },
+    {
+      "id": 10,
+      "subject": "Task 10: Docs grid page",
+      "status": "pending",
+      "description": "**Goal:** `/docs` shows projects \u00d7 docs, grouped Half \u2192 Team, with Proposals last. It filters by team and status, and each cell is a status chip with its due date in the tooltip.\n\nSee plan section \"Task 10: Docs grid page\".\n\n```json:metadata\n{\"files\": [\"frontend/src/App.tsx\", \"frontend/src/components/docs/DocsPage.tsx\"], \"verifyCommand\": \"`cd frontend && npx tsc -b && npx vite build` \\u2192 exit 0. Then open `/docs` manually.\", \"acceptanceCriteria\": [\"Groups appear in chronological half order (`2026-H1`, `2026-H2`, `2027-H1`), then Unscheduled, then Proposals. Teams are sorted within each group.\", \"Columns follow `DOC_MATRIX` order. A cell is blank when the doc isn't required.\", \"Filters call `/api/docs/health` with `team` and `status`.\"]}\n```",
+      "blockedBy": [
+        9
+      ]
+    },
+    {
+      "id": 11,
+      "subject": "Task 11: Sidebar grouping and dashboard card",
+      "status": "pending",
+      "description": "**Goal:**\n- **Sidebar:** a \"Docs\" link, plus projects grouped by Half \u2192 Team, then Proposals, Other and a collapsed Not Pursued group.\n- **Dashboard:** a Project docs card with overdue, due-soon, missing and can't-date counts, linking to `/docs`.\n\nSee plan section \"Task 11: Sidebar grouping and dashboard card\".\n\n```json:metadata\n{\"files\": [\"frontend/src/components/dashboard/Dashboard.tsx\", \"frontend/src/components/layout/Sidebar.tsx\"], \"verifyCommand\": \"`cd frontend && npx tsc -b && npx vite build` \\u2192 exit 0. Then check the sidebar and dashboard manually.\", \"acceptanceCriteria\": [\"Group order: halves newest first (e.g. H1'27, H2'26, H1'26), then Proposals, Other, then Not Pursued (collapsed by default). There's a team sub-heading wherever a team is set.\", \"The archived-projects section from Task 0 still works.\", \"The dashboard card renders when `/api/docs/health` responds and is hidden when it fails.\"]}\n```",
+      "blockedBy": [
+        10
+      ]
+    },
+    {
+      "id": 12,
+      "subject": "Task 12: Live dry run against the real roadmap",
+      "status": "pending",
+      "description": "**Goal:** Load the real 22 items, link the existing projects Brice approves, apply the check to them, and confirm the output matches the known gaps. No project is created and no roadmap link is written without Brice's approval.\n\nSee plan section \"Task 12: Live dry run against the real roadmap\".\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"`get_doc_health` output reviewed with Brice. The project's TaskManager board shows no duplicate doc tasks.\", \"acceptanceCriteria\": [\"`roadmap_items` holds 22 Digital Products items in Roadmap/Build/Measure.\", \"IDEA-850 and IDEA-932 are linked only after Brice confirms each match.\", \"`get_doc_health` for the linked projects shows no Brief/PRD link for [OI] Messaging Center (IDEA-850), matching the open item in the spec.\", \"The existing lifecycle tasks carry `doc_key` (backfill), and apply creates no duplicate PRD, release-notes or metrics tasks.\"]}\n```",
+      "blockedBy": [
+        8,
+        11
+      ]
+    }
+  ],
+  "lastUpdated": "2026-10-28T17:15:13.369905+00:00"
+}
