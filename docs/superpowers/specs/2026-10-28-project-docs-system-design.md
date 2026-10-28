@@ -113,6 +113,9 @@ label, a `requiredWhen` predicate, a due rule with an optional fallback, and how
     rows (`hub`, `figma`, `jira_epic`) are done as soon as the link is set, and the check marks
     their task done. Proposals' one-pagers are done once published.
   - 📝 **Draft:** the page exists but is unpublished.
+  - 📄 **Review:** published (or linked) but not yet done. The task isn't ticked, or the
+    experiment brief's Results section is still empty. A Confluence draft URL in a link field
+    doesn't count as published.
   - ⏳ **Due soon:** due within 14 days.
   - 🔴 **Overdue:** past the due date and not ✅.
   - ⚪ **Missing:** no page and no link.

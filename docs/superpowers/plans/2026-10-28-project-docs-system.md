@@ -1276,6 +1276,7 @@ import request from 'supertest';
 import app from '../index';
 import { client } from '../db';
 import { createProject, linkedModularProject, sync, modularItem } from './helpers';
+import { todayIso } from '../lib/doc-check';
 
 describe('PATCH /api/projects/:id/docs', () => {
   it('links a roadmap item and defaults the team', async () => {
@@ -1302,7 +1303,7 @@ describe('PATCH /api/projects/:id/docs', () => {
     const res = await request(app).patch(`/api/projects/${p.id}/docs`).send({ decision: 'no_go', decision_reason: 'too small' });
     expect(res.status).toBe(200);
     expect(res.body.docs_stage).toBe('not_pursued');
-    expect(res.body.decision_date).toBe(new Date().toISOString().slice(0, 10));
+    expect(res.body.decision_date).toBe(todayIso());
   });
 
   it('validates waivers', async () => {
@@ -1340,8 +1341,11 @@ export const TEAM_ABBREV: Record<string, string> = {
   'Digital Products': 'DP',
 };
 
+/** Today's date in the server's local time zone (the user's Mac), as YYYY-MM-DD. */
 export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export function parseJson<T>(s: string | null | undefined, fallback: T): T {
@@ -2029,6 +2033,7 @@ import type { DocStatus } from '@shared/types';
 export const DOC_STATUS_META: Record<DocStatus, { icon: string; label: string; className: string }> = {
   done: { icon: '✅', label: 'Done', className: 'bg-green-50 text-green-700 border-green-200' },
   draft: { icon: '📝', label: 'Draft', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  review: { icon: '📄', label: 'Published — tick task', className: 'bg-sky-50 text-sky-700 border-sky-200' },
   due_soon: { icon: '⏳', label: 'Due soon', className: 'bg-yellow-50 text-yellow-800 border-yellow-200' },
   overdue: { icon: '🔴', label: 'Overdue', className: 'bg-red-50 text-red-700 border-red-200' },
   missing: { icon: '⚪', label: 'Missing', className: 'bg-slate-50 text-slate-600 border-slate-200' },
@@ -2260,7 +2265,7 @@ import { formatDate, halfLabel } from '../../utils';
 import { DOC_STATUS_META, DocStatusChip, FlagChips } from './DocStatusChip';
 
 const TEAMS = ['OI', 'WW', 'ABK', 'DP'];
-const STATUS_FILTERS: DocStatus[] = ['overdue', 'due_soon', 'missing', 'cant_date', 'draft'];
+const STATUS_FILTERS: DocStatus[] = ['overdue', 'due_soon', 'missing', 'cant_date', 'draft', 'review'];
 const COLUMN_LABELS: Record<string, string> = {
   hub: 'Hub', one_pager: '1-pager', research: 'Research', prd: 'PRD', figma: 'Figma',
   'experiment_brief.plan': 'Exp plan', jira_epic: 'Epic', cs_marketing_brief: 'CS/Mkt',
