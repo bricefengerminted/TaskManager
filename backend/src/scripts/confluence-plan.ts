@@ -44,7 +44,11 @@ async function plan() {
     // Add nodes that are new since the last plan; never touch recorded ones.
     const m = readJson<Manifest>(MANIFEST);
     const fresh = emptyManifest(p, m.cloudId, m.spaceId);
-    writeJson(MANIFEST, { ...m, nodes: { ...fresh.nodes, ...m.nodes } });
+    // Titles always follow the plan, so naming fixes reach the manifest.
+    const merged = Object.fromEntries(
+      Object.entries({ ...fresh.nodes, ...m.nodes }).map(([k, v]) => [k, { ...v, title: fresh.nodes[k]?.title ?? v.title }]),
+    );
+    writeJson(MANIFEST, { ...m, nodes: merged });
   }
   const hubs = p.nodes.filter((n) => n.kind === 'hub').length;
   console.log(`${p.nodes.length} nodes (${hubs} hubs), ${p.collisions.length} title collisions, ${p.migration.length} migration rows.`);
