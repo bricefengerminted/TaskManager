@@ -236,8 +236,10 @@ function rowStatus(row: DocRow, c: DocContext, ev: DocEvidence, due: string | nu
   const exists = Boolean(ev.link || ev.page_url);
   const linkPublished = Boolean(ev.link) && !/draftId=|resumedraft\.action/.test(ev.link!);
   const published = linkPublished || Boolean(ev.published);
+  // Link-only rows (hub, Figma, Jira Epic) are done once a published link exists, from the
+  // roadmap or entered in TaskManager: the roadmap can't take Figma or Jira Epic links yet.
   const complete = row.linkOnly
-    ? linkPublished
+    ? published
     : published && (proposal || Boolean(ev.task_done)) && (!row.needsResults || Boolean(ev.results_filled));
 
   if (complete) return 'done';
