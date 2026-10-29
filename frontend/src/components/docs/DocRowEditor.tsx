@@ -27,6 +27,8 @@ export function DocRowEditor({ project, row, onSaved, updateProject, onClose }: 
   const waivers = project.waivers ?? {};
   const projectWaiver = waivers[row.key];
   const pinned = row.due_rule === 'Pinned';
+  // Waived by stage or doc mode: nothing here can make it required, so it can't be ticked.
+  const ruleWaived = row.status === 'waived' && !projectWaiver;
 
   const save = async (data: { link?: string | null; done?: boolean; due_date?: string | null }) => {
     setError('');
@@ -94,8 +96,8 @@ export function DocRowEditor({ project, row, onSaved, updateProject, onClose }: 
           ) : (
             <button
               type="button"
-              disabled={saving || !row.link}
-              title={row.link ? undefined : 'Add a link first'}
+              disabled={saving || !row.link || ruleWaived}
+              title={ruleWaived ? 'Not required for this stage or doc mode' : row.link ? undefined : 'Add a link first'}
               onClick={() => save({ done: true })}
               className={quiet}
             >

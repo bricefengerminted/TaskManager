@@ -36,6 +36,17 @@ describe('POST /api/docs/row', () => {
     expect(JSON.parse((await task(p.id, 'prd')).doc_evidence).published).toBe(false);
   });
 
+  it('marking a waived doc done drops the waiver', async () => {
+    const p = await linkedModularProject();
+    await apply({ project_id: p.id });
+    await request(app).patch(`/api/projects/${p.id}/docs`).send({ waivers: { prd: 'not needed' } });
+    await edit({ project_id: p.id, doc_key: 'prd', link: 'https://minted.atlassian.net/wiki/spaces/PM/pages/123' });
+    const r = await edit({ project_id: p.id, doc_key: 'prd', done: true });
+    expect(r.status).toBe(200);
+    expect(rowOf(r.body, 'prd').status).toBe('done');
+    expect(JSON.parse((await sql(`SELECT waivers FROM projects WHERE id=?`, [p.id]))[0].waivers)).not.toHaveProperty('prd');
+  });
+
   it('pins a due date and unpins it back to the rule', async () => {
     const p = await linkedModularProject();
     await apply({ project_id: p.id });
