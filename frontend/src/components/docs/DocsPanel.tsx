@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Decision, DocHealthProject, Project, ProjectDocsInput } from '@shared/types';
 import { api } from '../../api/client';
 import { useApp } from '../../context/AppContext';
 import { formatDate, halfLabel, safeHttpUrl } from '../../utils';
 import { DocStatusChip, FlagChips } from './DocStatusChip';
+import { DocRowEditor } from './DocRowEditor';
 
 const DECISION_LABELS: Record<Decision, string> = { go: 'Go', no_go: 'No-go', parked: 'Parked' };
 
 export function DocsPanel({ project, refreshKey = '' }: { project: Project; refreshKey?: string }) {
-  const { updateProjectDocs } = useApp();
+  const { updateProjectDocs, loadTasks, loadProject } = useApp();
   const [health, setHealth] = useState<DocHealthProject | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(true);
@@ -17,6 +18,9 @@ export function DocsPanel({ project, refreshKey = '' }: { project: Project; refr
   const [form, setForm] = useState<Decision | null>(null);
   const [reason, setReason] = useState('');
   const [revisit, setRevisit] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
+  // Bumped on every load and every row save, so a slower, older load can't overwrite newer rows.
+  const seq = useRef(0);
 
   const tracked = project.docs_stage === 'proposal' || project.docs_stage === 'roadmap';
 
@@ -28,9 +32,10 @@ export function DocsPanel({ project, refreshKey = '' }: { project: Project; refr
       return;
     }
     setLoading(true);
+    const mine = ++seq.current;
     api
       .getDocHealth({ project_id: project.id })
-      .then((res) => { if (alive) setHealth(res.projects[0] ?? null); })
+      .then((res) => { if (alive && mine === seq.current) setHealth(res.projects[0] ?? null); })
       .catch((e) => { if (alive) setError((e as Error).message); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
@@ -48,6 +53,14 @@ export function DocsPanel({ project, refreshKey = '' }: { project: Project; refr
     } finally {
       setSaving(false);
     }
+  };
+
+  const rowSaved = (h: DocHealthProject) => {
+    seq.current++;
+    setHealth(h);
+    // The row's task and the project's hub link may have changed; refresh the board and header.
+    void loadTasks(project.id);
+    void loadProject(project.id);
   };
 
   const openForm = (d: Decision) => {
@@ -192,13 +205,14 @@ export function DocsPanel({ project, refreshKey = '' }: { project: Project; refr
       {open && health && (
         <table className="mt-2 w-full text-sm">
           <thead className="sr-only">
-            <tr><th>Doc</th><th>Due</th><th>Rule</th><th>Status</th></tr>
+            <tr><th>Doc</th><th>Due</th><th>Rule</th><th>Status</th><th>Edit</th></tr>
           </thead>
           <tbody>
             {health.rows.map((r) => {
               const link = safeHttpUrl(r.link);
               return (
-                <tr key={r.key} className="border-t border-slate-100">
+                <Fragment key={r.key}>
+                <tr className="border-t border-slate-100">
                   <td className="py-1.5 pr-4 text-slate-700">
                     {link ? <a href={link} target="_blank" rel="noreferrer" className="hover:underline">{r.label}</a> : r.label}
                   </td>
@@ -207,7 +221,32 @@ export function DocsPanel({ project, refreshKey = '' }: { project: Project; refr
                     {r.status === 'cant_date' && r.needs.length ? `needs: ${r.needs.join(' or ')}` : r.due_rule}
                   </td>
                   <td className="py-1.5"><DocStatusChip status={r.status} /></td>
+                  <td className="py-1.5 text-right">
+                    <button
+                      type="button"
+                      aria-expanded={editing === r.key}
+                      aria-label={`Edit ${r.label}`}
+                      onClick={() => setEditing(editing === r.key ? null : r.key)}
+                      className="text-xs text-slate-400 hover:text-indigo-600"
+                    >
+                      Edit
+                    </button>
+                  </td>
                 </tr>
+                {editing === r.key && (
+                  <tr>
+                    <td colSpan={5} className="pl-4 bg-slate-50">
+                      <DocRowEditor
+                        project={project}
+                        row={r}
+                        onSaved={rowSaved}
+                        updateProject={update}
+                        onClose={() => setEditing(null)}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
           </tbody>

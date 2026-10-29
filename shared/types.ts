@@ -142,6 +142,15 @@ export interface DocHealthProject {
   rows: DocRowResult[];
 }
 
+/** One Docs-panel edit (POST /api/docs/row). null clears a link or unpins a due date. */
+export interface DocRowInput {
+  project_id: string;
+  doc_key: DocKey;
+  link?: string | null;
+  done?: boolean;
+  due_date?: string | null;
+}
+
 export interface DocHealthResponse {
   today: string;
   summary: Record<DocStatus, number>;
