@@ -69,6 +69,8 @@ export const api = {
     ).toString();
     return request<import('@shared/types').DocHealthResponse>(`/docs/health${qs ? `?${qs}` : ''}`);
   },
+  updateDocRow: (data: import('@shared/types').DocRowInput) =>
+    request<import('@shared/types').DocHealthProject>('/docs/row', { method: 'POST', body: JSON.stringify(data) }),
   updateProjectDocs: (id: string, data: import('@shared/types').ProjectDocsInput) =>
     request<import('@shared/types').Project>(`/projects/${id}/docs`, { method: 'PATCH', body: JSON.stringify(data) }),
 
