@@ -234,6 +234,13 @@ describe('review fixes', () => {
     expect(st('2026-10-26')).toBe('missing');
   });
 
+  it('counts a TaskManager link as done for link-only rows', () => {
+    const r = byKey(evaluateDocs(modular, { jira_epic: { link: null, page_url: 'https://minted.atlassian.net/browse/WW-1', published: true } }, TODAY));
+    expect(r.jira_epic.status).toBe('done');
+    const draft = byKey(evaluateDocs(modular, { jira_epic: { link: null, page_url: 'https://x/resumedraft.action?draftId=1', published: false } }, TODAY));
+    expect(draft.jira_epic.status).not.toBe('done');
+  });
+
   it('rejects impossible dates', () => {
     for (const bad of ['2026-13-45', '2026-02-30']) {
       const ctx = mk({ phases: { ...modular.phases, build: { start: bad, end: '2026-11-10' } } });
