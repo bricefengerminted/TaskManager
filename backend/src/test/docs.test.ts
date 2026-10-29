@@ -15,7 +15,7 @@ describe('docs apply', () => {
     expect(res.status).toBe(200);
     expect(res.body.created.map((c: any) => c.doc_key)).toEqual([
       'hub', 'one_pager', 'prd', 'experiment_brief.plan', 'jira_epic',
-      'release_notes', 'metrics_snapshot', 'experiment_brief.results',
+      'release_notes', 'experiment_brief.results',
     ]);
     const tasks = (await request(app).get(`/api/projects/${p.id}/tasks`)).body;
     const prd = tasks.find((t: any) => t.doc_key === 'prd');

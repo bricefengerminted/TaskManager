@@ -32,14 +32,16 @@ describe('migrations', () => {
     });
     await addTask('t1', 'p1', 'Write PRD');
     await addTask('t2', 'p1', 'Final results readout');
-    await addTask('t3', 'p1', '2-week metrics check');
-    await addTask('t4', 'p1', '2-week metrics check');
+    await addTask('t3', 'p1', 'Write release notes');
+    await addTask('t4', 'p1', 'Write release notes');
+    await addTask('t5', 'p1', '2-week metrics check');
     await runMigrations();
     const rows = (await client.execute(`SELECT id, doc_key FROM tasks WHERE project_id='p1' ORDER BY id`)).rows as any[];
     const keys = Object.fromEntries(rows.map((r) => [r.id, r.doc_key]));
     expect(keys.t1).toBe('prd');
     expect(keys.t2).toBe('experiment_brief.results');
-    expect([keys.t3, keys.t4].filter((k) => k === 'metrics_snapshot')).toHaveLength(1);
+    expect([keys.t3, keys.t4].filter((k) => k === 'release_notes')).toHaveLength(1);
+    expect(keys.t5).toBeNull(); // Metrics Snapshot is retired
   });
 
   it('rejects a second task with the same doc_key in a project', async () => {

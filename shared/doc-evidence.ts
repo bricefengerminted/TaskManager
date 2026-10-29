@@ -14,7 +14,6 @@ const KEYWORDS: [RegExp, DocKey][] = [
   [/experiment/i, 'experiment_brief.plan'],
   [/release notes/i, 'release_notes'],
   [/one[- ]?pager/i, 'one_pager'],
-  [/metrics snapshot|2[- ]week metrics/i, 'metrics_snapshot'],
   [/research synthesis|\buxr\b/i, 'research'],
   [/cs\s*\/\s*marketing/i, 'cs_marketing_brief'],
   [/\bprd\b|\bbrief\b/i, 'prd'],
