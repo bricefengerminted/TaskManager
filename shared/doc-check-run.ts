@@ -82,7 +82,7 @@ export function planDocCheck(inp: DocCheckInput): DocCheckOutput {
   const rowsForHub = (hubId: string) => {
     const project = projectForHub(hubId);
     const item = itemForHub(hubId);
-    return project?.rows ?? (item ? itemDocRows(item, inp.today) : []);
+    return project?.rows ?? (item ? itemDocRows(item, inp.today, undefined, `${inp.base}${hubId}`) : []);
   };
 
   const evidence: DocCheckOutput['evidence'] = {};
