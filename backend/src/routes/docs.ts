@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
 import { projects, tasks, roadmapItems } from '../db/schema';
 import { DOC_STATUSES, DOC_KEYS, isValidIsoDate, docRow, evaluateDocs, type DocKey, type DocStatus } from '../../../shared/doc-matrix';
-import { buildContext, buildEvidence, projectHealth, todayIso } from '../lib/doc-check';
+import { buildContext, buildEvidence, parseJson, projectHealth, todayIso } from '../lib/doc-check';
 import { actorOf, logActivity } from '../lib/activity';
 import { asyncHandler } from '../lib/async-handler';
 
@@ -258,7 +258,8 @@ const isDraftUrl = (u: string) => /draftId=|resumedraft\.action/.test(u);
 
 // POST /api/docs/row { project_id, doc_key, link?, done?, due_date?, today? }
 // Edits one row from the Docs panel. link: an https URL, or null to clear it (hub → project hub_url,
-// other docs → the doc task's page evidence). done: ticks or reopens the doc task; ticking needs a link.
+// other docs → the doc task's page evidence). done: ticks or reopens the doc task; ticking needs a link
+// and drops the project's "not required" waiver for the doc, since a waiver outranks done.
 // due_date: a YYYY-MM-DD date pins the task to it; null unpins it back to the matrix date.
 router.post('/row', asyncHandler(async (req: Request, res: Response) => {
   const body = (isPlainObject(req.body) ? req.body : {}) as Record<string, unknown>;
@@ -291,6 +292,10 @@ router.post('/row', asyncHandler(async (req: Request, res: Response) => {
   const matrix = docRow(key);
   const newLink = typeof link === 'string' ? link.trim() : link;
   if (done === true && !(newLink ?? row.link)) return res.status(400).json({ error: 'Add a link before marking it done' });
+  const waivers = parseJson<Record<string, string>>(p.waivers, {});
+  if (done === true && row.status === 'waived' && !waivers[key]) {
+    return res.status(400).json({ error: "Not required for this project's stage or doc mode, so it can't be marked done" });
+  }
 
   const actor = actorOf(req);
   const ts = new Date().toISOString();
@@ -329,6 +334,11 @@ router.post('/row', asyncHandler(async (req: Request, res: Response) => {
         set.doc_evidence = JSON.stringify({ ...(ev ? JSON.parse(ev) : {}), results_filled: true });
       }
       changes.push(done ? 'marked done' : 'reopened');
+      if (done && waivers[key]) {
+        const { [key]: _dropped, ...rest } = waivers;
+        await tx.update(projects).set({ waivers: JSON.stringify(rest), updated_at: ts }).where(eq(projects.id, p.id)).run();
+        changes.push('now required');
+      }
     }
     if (due_date !== undefined) {
       if (due_date === null) {
