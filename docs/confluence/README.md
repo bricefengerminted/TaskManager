@@ -46,3 +46,10 @@ Decisions (Brice, 2026-10-28; his only concern was the token, now resolved):
 - D4: TaskManager owns hub settings; the hub Settings table is generated.
 - D5: only changed sections are written.
 - D6: Results counts as filled once a Results heading has at least 20 characters of real text under it.
+
+### Files outside the repo changed by step 4 (2026-10-29)
+Each has a backup next to it with the suffix shown.
+- `~/.claude/scheduled-tasks/daily-morning-briefing/SKILL.md` (`SKILL.2026-10-29.bak.md`): runs the doc check (Step 2b), restarts the backend via launchctl, re-dates only non-doc lifecycle tasks from roadmap dates, reports Jira drift, drops the Monday page health check.
+- `~/Claude Assistant/.claude/skills/draft-deliverables/SKILL.md` (`.2026-10-29.bak`): files drafts under the project hub with the standard doc title; no longer edits canonical pages.
+- `~/Claude Assistant/knowledge/project-lifecycle-template.md` (`.2026-10-29.bak`): drops the experimentation doc, release notes, 2-week metrics and final readout tasks (the doc matrix creates those).
+- `~/Claude Assistant/state/project-timelines.md` (`.2026-10-29.bak`): marked retired; no step reads it.

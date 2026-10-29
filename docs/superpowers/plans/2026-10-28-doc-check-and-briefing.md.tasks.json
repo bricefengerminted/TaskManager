@@ -85,7 +85,7 @@
     {
       "id": 9,
       "subject": "Task 9: Rework the morning briefing",
-      "status": "pending",
+      "status": "completed",
       "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 9: Rework the morning briefing.\n\n```json:metadata\n{\"files\": [\"~/.claude/scheduled-tasks/daily-morning-briefing/SKILL.md\"], \"verifyCommand\": \"diff backup vs new SKILL.md; run_scheduled_task produces a Docs section\", \"acceptanceCriteria\": [\"See Task 9 in the plan\"]}\n```",
       "blockedBy": [
         8
@@ -94,12 +94,12 @@
     {
       "id": 10,
       "subject": "Task 10: Point the helpers at hubs and retire the mapping file",
-      "status": "pending",
+      "status": "completed",
       "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 10: Point the helpers at hubs and retire the mapping file.\n\n```json:metadata\n{\"files\": [\"~/Claude Assistant/.claude/skills/draft-deliverables/SKILL.md\", \"~/Claude Assistant/knowledge/project-lifecycle-template.md\", \"~/Claude Assistant/state/project-timelines.md\"], \"verifyCommand\": \"grep -rln 'Canonical Page ID' ~/.claude/scheduled-tasks '~/Claude Assistant/.claude/skills'\", \"acceptanceCriteria\": [\"See Task 10 in the plan\"]}\n```",
       "blockedBy": [
         9
       ]
     }
   ],
-  "lastUpdated": "2026-10-29T08:30:00Z"
+  "lastUpdated": "2026-10-29T15:40:00Z"
 }
