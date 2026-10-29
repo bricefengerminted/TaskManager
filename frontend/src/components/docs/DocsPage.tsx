@@ -11,7 +11,7 @@ const STATUS_FILTERS: DocStatus[] = ['overdue', 'due_soon', 'missing', 'cant_dat
 const COLUMN_LABELS: Record<DocKey, string> = {
   hub: 'Hub', one_pager: '1-pager', research: 'Research', prd: 'PRD', figma: 'Figma',
   'experiment_brief.plan': 'Exp plan', jira_epic: 'Epic', cs_marketing_brief: 'CS/Mkt',
-  release_notes: 'Rel notes', metrics_snapshot: 'Metrics', 'experiment_brief.results': 'Exp results',
+  release_notes: 'Rel notes', 'experiment_brief.results': 'Exp results',
 };
 
 type Group = { key: string; label: string; teams: [string, DocHealthProject[]][] };

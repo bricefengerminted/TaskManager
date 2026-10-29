@@ -97,7 +97,7 @@ describe('dry run', () => {
     const res = await apply({ project_id: p.id, dry_run: true, evidence: { prd: { published: true } } });
     expect(res.status).toBe(200);
     expect(res.body.dry_run).toBe(true);
-    expect(res.body.created).toHaveLength(8);
+    expect(res.body.created).toHaveLength(7);
     expect(res.body.conflicts).toEqual([]);
     expect(await count(`SELECT count(*) c FROM tasks WHERE doc_key IS NOT NULL`)).toBe(0);
     expect(await count(`SELECT count(*) c FROM activity`)).toBe(before);
@@ -174,7 +174,7 @@ describe('link-only rows and the audit trail', () => {
     const rows = await sql(`SELECT detail FROM activity WHERE type='docs_applied'`);
     expect(rows).toHaveLength(1);
     const d = JSON.parse(rows[0].detail);
-    expect(d.created).toBe(8);
+    expect(d.created).toBe(7);
     expect(d.evidence_keys).toEqual(['prd']);
   });
 });

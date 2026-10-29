@@ -17,7 +17,7 @@ export type Phases = Partial<Record<PhaseKey, PhaseDates>>;
 
 export type DocKey =
   | 'hub' | 'one_pager' | 'research' | 'prd' | 'figma' | 'experiment_brief.plan'
-  | 'jira_epic' | 'cs_marketing_brief' | 'release_notes' | 'metrics_snapshot'
+  | 'jira_epic' | 'cs_marketing_brief' | 'release_notes'
   | 'experiment_brief.results';
 
 export type DocStatus =
@@ -120,9 +120,7 @@ export const DOC_MATRIX: DocRow[] = [
     due: { anchor: 'build.end', offsetDays: -7 } },
   { key: 'release_notes', phase: 'build', label: 'Release Notes', pageTitle: 'Release Notes', required: onRoadmap,
     due: { anchor: 'build.end', offsetDays: 0 }, roadmapLink: 'releaseNotes' },
-  { key: 'metrics_snapshot', phase: 'measure', label: 'Metrics Snapshot', pageTitle: 'Metrics Snapshot',
-    required: (c) => hasPhase(c, 'measure'),
-    due: { anchor: 'measure.start', offsetDays: 14 }, fallback: { anchor: 'build.end', offsetDays: 14 } },
+  // One experimentation doc: the plan row ticks when it's written, this row when its Results are filled in.
   { key: 'experiment_brief.results', phase: 'measure', label: 'Experiment Brief — Results', pageTitle: 'Experiment Brief',
     required: (c) => hasPhase(c, 'measure'),
     due: { anchor: 'measure.end', offsetDays: 0 }, fallback: { anchor: 'build.end', offsetDays: 42 },

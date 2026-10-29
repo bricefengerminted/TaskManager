@@ -18,12 +18,12 @@ describe('waived rows', () => {
   it('produce no conflicts or conflict logs', async () => {
     const p = await linkedModularProject();
     await apply({ project_id: p.id });
-    await sql(`UPDATE tasks SET due_date='2026-12-30' WHERE project_id=? AND doc_key='metrics_snapshot'`, [p.id]);
-    await request(app).patch(`/api/projects/${p.id}/docs`).send({ waivers: { metrics_snapshot: 'not needed' } });
+    await sql(`UPDATE tasks SET due_date='2026-12-30' WHERE project_id=? AND doc_key='release_notes'`, [p.id]);
+    await request(app).patch(`/api/projects/${p.id}/docs`).send({ waivers: { release_notes: 'not needed' } });
     await sync([modularItem({ phases: { discovery: { start: '2026-03-01', end: '2026-03-30' }, build: { start: '2026-08-04', end: '2026-11-10' }, measure: { start: '2026-11-17', end: '2026-12-01' } } })]);
     const res = await apply({ project_id: p.id });
-    expect(res.body.conflicts.map((c: any) => c.doc_key)).not.toContain('metrics_snapshot');
-    expect(res.body.redated.map((c: any) => c.doc_key)).not.toContain('metrics_snapshot');
+    expect(res.body.conflicts.map((c: any) => c.doc_key)).not.toContain('release_notes');
+    expect(res.body.redated.map((c: any) => c.doc_key)).not.toContain('release_notes');
     expect(Number((await sql(`SELECT count(*) c FROM activity WHERE type='doc_due_conflict'`))[0].c)).toBe(0);
   });
 });

@@ -104,7 +104,6 @@ export async function runMigrations() {
     'write prd': 'prd',
     'create experimentation doc': 'experiment_brief.plan',
     'write release notes': 'release_notes',
-    '2-week metrics check': 'metrics_snapshot',
     'final results readout': 'experiment_brief.results',
   };
   const normTitle = (t: string) =>
@@ -130,6 +129,14 @@ export async function runMigrations() {
     await client.execute({ sql: `UPDATE tasks SET doc_key = ?, doc_type = ? WHERE id = ?`, args: [key, key.split('.')[0], t.id] });
     set.add(key);
   }
+
+  // Metrics Snapshot is retired: results go in the experiment brief. Old snapshot tasks keep
+  // their history as plain tasks, and the key leaves every project's waivers.
+  await client.execute(`UPDATE tasks SET doc_key = NULL WHERE doc_key = 'metrics_snapshot'`);
+  await client.execute(
+    `UPDATE projects SET waivers = json_remove(waivers, '$.metrics_snapshot')
+     WHERE json_valid(waivers) AND json_type(waivers, '$.metrics_snapshot') IS NOT NULL`
+  );
 
   // Idempotent fix-up: doc_type is the doc_key's prefix (experiment_brief.plan -> experiment_brief).
   await client.execute(

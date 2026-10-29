@@ -97,7 +97,7 @@ server.tool(
     doc_type: z
       .string()
       .optional()
-      .describe("Only tasks with this doc_type (e.g. experiment_brief, release_notes, metrics_snapshot)"),
+      .describe("Only tasks with this doc_type (e.g. experiment_brief, release_notes)"),
   },
   async ({ project_id, status, due_within_days, doc_type }) => {
     try {
@@ -151,7 +151,7 @@ server.tool(
     due_date: z.string().optional().describe("Due date in YYYY-MM-DD format"),
     status: z.enum(["todo", "in_progress", "done"]).default("todo").describe("Initial status"),
     links: z.array(linkSchema).optional().describe("Artifact links to attach on creation"),
-    doc_type: z.string().optional().describe("Lifecycle doc type, e.g. experiment_brief / release_notes / metrics_snapshot"),
+    doc_type: z.string().optional().describe("Lifecycle doc type, e.g. experiment_brief / release_notes"),
   },
   async ({ title, project_id, description, priority, due_date, status, links, doc_type }) => {
     try {
@@ -194,7 +194,7 @@ server.tool(
     priority: z.enum(["low", "medium", "high", "urgent"]).optional().describe("New priority"),
     due_date: z.string().optional().describe("New due date (YYYY-MM-DD) or empty string to clear"),
     links: z.array(linkSchema).optional().describe("Replace the task's artifact links with this list"),
-    doc_type: z.string().optional().describe("Lifecycle doc type, e.g. experiment_brief / release_notes / metrics_snapshot"),
+    doc_type: z.string().optional().describe("Lifecycle doc type, e.g. experiment_brief / release_notes"),
   },
   async ({ task_id, project_id, title, description, status, priority, due_date, links, doc_type }) => {
     try {

@@ -104,7 +104,6 @@ label, a `requiredWhen` predicate, a due rule with an optional fallback, and how
 | `jira_epic` | Build | Jira epic (link) | Always | Build start | — |
 | `cs_marketing_brief` | Build | CS/Marketing brief | Hub flag "customer-facing launch" | Build end −1w | — |
 | `release_notes` | Build | Release notes | Always | Build end | — |
-| `metrics_snapshot` | Measure | 2-week metrics snapshot | Measure phase is on | Measure start +2w | Build end +2w |
 | `experiment_brief.results` | Measure | Experiment brief: results and decision | Measure phase is on | Measure end | Build end +6w |
 
 "Build end" stands for the release date; the roadmap API does not return a separate release field.

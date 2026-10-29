@@ -29,7 +29,7 @@ describe('evaluateDocs', () => {
     const rows = evaluateDocs(modular, {}, TODAY);
     expect(rows.map((r) => r.key)).toEqual([
       'hub', 'one_pager', 'prd', 'experiment_brief.plan', 'jira_epic',
-      'release_notes', 'metrics_snapshot', 'experiment_brief.results',
+      'release_notes', 'experiment_brief.results',
     ]);
   });
 
@@ -39,7 +39,6 @@ describe('evaluateDocs', () => {
     expect(r.prd.due_rule).toBe('Build start −2w');
     expect(r.one_pager.due).toBe('2026-03-15');
     expect(r.release_notes.due).toBe('2026-11-10');
-    expect(r.metrics_snapshot.due).toBe('2026-11-24');
     expect(r['experiment_brief.results'].due).toBe('2026-12-01');
   });
 
@@ -48,7 +47,6 @@ describe('evaluateDocs', () => {
     expect(r.hub.status).toBe('overdue');
     expect(r.prd.status).toBe('overdue');
     expect(r.release_notes.status).toBe('due_soon');
-    expect(r.metrics_snapshot.status).toBe('missing');
     expect(r['experiment_brief.results'].status).toBe('inactive');
   });
 
@@ -216,11 +214,11 @@ describe('review fixes', () => {
     expect(r.due_rule).toBe('Build end −1w');
   });
 
-  it('falls back to build.end+14 for metrics when measure.start is missing', () => {
-    const ctx = mk({ phases: { build: { start: '2026-08-04', end: '2026-11-10' }, measure: { end: '2026-12-01' } } });
-    const r = byKey(evaluateDocs(ctx, {}, TODAY)).metrics_snapshot;
-    expect(r.due).toBe('2026-11-24');
-    expect(r.due_rule).toBe('Build end +2w');
+  it('falls back to build.end+6w for results when measure.end is missing', () => {
+    const ctx = mk({ phases: { build: { start: '2026-08-04', end: '2026-11-10' }, measure: { start: '2026-11-17' } } });
+    const r = byKey(evaluateDocs(ctx, {}, TODAY))['experiment_brief.results'];
+    expect(r.due).toBe('2026-12-22');
+    expect(r.due_rule).toBe('Build end +6w');
   });
 
   it('waives undone rows when on hold or no-go, and honours waivers over overdue', () => {
@@ -234,9 +232,6 @@ describe('review fixes', () => {
     expect(st('2026-11-10')).toBe('due_soon');
     expect(st('2026-10-27')).toBe('due_soon');
     expect(st('2026-10-26')).toBe('missing');
-    const ms = (today: string) => byKey(evaluateDocs(modular, {}, today)).metrics_snapshot.status; // due 11-24, phase not reached
-    expect(ms('2026-10-26')).toBe('inactive');
-    expect(ms('2026-10-27')).toBe('missing');
   });
 
   it('rejects impossible dates', () => {
