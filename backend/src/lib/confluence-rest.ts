@@ -27,7 +27,7 @@ export class ConfluenceRest {
         headers: { Authorization: `Basic ${auth}`, Accept: 'application/json', 'Content-Type': 'application/json' },
       });
       if (res.status === 409) throw new ConflictError(`409 on ${path}`);
-      if (!res.ok) throw new Error(`${init.method ?? 'GET'} ${path} → ${res.status}`);
+      if (!res.ok) throw new Error(`${init.method ?? 'GET'} ${path} → ${res.status} ${(await res.text()).slice(0, 300)}`.trim());
       return (await res.json()) as T;
     };
     const next = this.queue.then(run, run);
@@ -60,7 +60,8 @@ export class ConfluenceRest {
         status: page.status,
         title: page.title,
         body: { representation: 'atlas_doc_format', value: JSON.stringify(page.body) },
-        version: { number: page.version + 1, message: 'Doc check' },
+        // Drafts have a single version that is overwritten in place.
+        version: { number: page.status === 'draft' ? page.version : page.version + 1, message: 'Doc check' },
       }),
     });
   }

@@ -212,8 +212,12 @@ async function migrateSettings(write: boolean) {
     const item = inp.items.find((i) => inp.manifest[`hub:${i.id}`] === id);
     const block = generated('settings', settingsContent(project?.settings ?? defaultSettings({ stage: item?.stage ?? 'roadmap' })));
     const body: AdfDoc = { ...page.body, content: [...c.slice(0, at + 1), block, ...c.slice(at + 3)] };
-    console.log(`${label}: ${write ? 'migrated' : 'would migrate'}`);
-    if (write) await conf.putAdf(id, { ...page, body });
+    try {
+      if (write) await conf.putAdf(id, { ...page, body });
+      console.log(`${label}: ${write ? 'migrated' : 'would migrate'}`);
+    } catch (e) {
+      console.log(`${label}: ${(e as Error).message}, skipped`);
+    }
   }
 }
 

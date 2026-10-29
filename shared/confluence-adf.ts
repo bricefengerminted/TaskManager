@@ -132,6 +132,8 @@ const VOLATILE = new Set(['localId', 'macroId', '_parentId', '__confluenceMetada
 /** Attribute values Confluence fills in on save that mean the same as leaving them out. */
 const DEFAULT_ATTRS: Record<string, unknown> = { colspan: 1, rowspan: 1, layout: 'default' };
 
+const PAGE_SLUG = /(\/wiki\/spaces\/[^/]+\/pages\/\d+)\/[^?#]*/;
+
 /** Strip ids and default attrs Confluence adds on save, drop empty attrs and sort keys, so two bodies compare by meaning. */
 export function normalizeForCompare(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(normalizeForCompare);
@@ -141,7 +143,8 @@ export function normalizeForCompare(v: unknown): unknown {
     for (const [k, val] of Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) {
       if (VOLATILE.has(k)) continue;
       if (k in DEFAULT_ATTRS && val === DEFAULT_ATTRS[k]) continue;
-      const n = normalizeForCompare(val);
+      // Confluence saves page links without the title slug: /pages/123/Some+Title → /pages/123.
+      const n = k === 'href' && typeof val === 'string' ? val.replace(PAGE_SLUG, '$1') : normalizeForCompare(val);
       if (k === 'attrs' && n && typeof n === 'object' && Object.keys(n).length === 0) continue;
       out[k] = n;
     }

@@ -92,4 +92,11 @@ describe('settings section and change detection', () => {
     wide.content[0].content[0].attrs.colspan = 2;
     expect(normalizeForCompare(wide)).not.toEqual(normalizeForCompare(ours));
   });
+
+  it('ignores the title slug Confluence drops from page links', () => {
+    const link = (href: string) => ({ type: 'text', text: 'PRD', marks: [{ type: 'link', attrs: { href } }] });
+    const base = 'https://minted.atlassian.net/wiki/spaces/PM/pages/123';
+    expect(normalizeForCompare(link(base))).toEqual(normalizeForCompare(link(`${base}/Brief+PRD+Thing`)));
+    expect(normalizeForCompare(link(base))).not.toEqual(normalizeForCompare(link(`${base}4`)));
+  });
 });

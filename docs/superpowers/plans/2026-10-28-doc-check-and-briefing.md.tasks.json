@@ -76,7 +76,7 @@
     {
       "id": 8,
       "subject": "Task 8: First write on live data",
-      "status": "pending",
+      "status": "completed",
       "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 8: First write on live data.\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"cd backend && npm run doc-check -- run | tail -2\", \"acceptanceCriteria\": [\"See Task 8 in the plan\"]}\n```",
       "blockedBy": [
         7
@@ -101,5 +101,5 @@
       ]
     }
   ],
-  "lastUpdated": "2026-10-28T16:24:16.655534"
+  "lastUpdated": "2026-10-29T08:30:00Z"
 }

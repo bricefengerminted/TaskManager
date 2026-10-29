@@ -45,4 +45,11 @@ describe('ConfluenceRest', () => {
       .rejects.toBeInstanceOf(ConflictError);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).version.number).toBe(4);
   });
+
+  it('keeps the version number for a draft, which has only one', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(json({}));
+    vi.stubGlobal('fetch', fetchMock);
+    await client().putAdf('1', { version: 1, title: 'T', status: 'draft', body: { type: 'doc', version: 1, content: [] } });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).version.number).toBe(1);
+  });
 });
