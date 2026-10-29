@@ -27,6 +27,11 @@ describe('itemDocRows', () => {
     const rows = itemDocRows({ ...ww, links: { ...ww.links, jiraEpic: 'https://minted.atlassian.net/browse/DP-1' } }, '2026-10-28');
     expect(rows.find((r) => r.key === 'jira_epic')!.status).toBe('done');
   });
+  it('marks the Hub row done when the hub page exists', () => {
+    const url = 'https://minted.atlassian.net/wiki/spaces/PM/pages/123';
+    expect(itemDocRows(ww, '2026-10-28', undefined, url).find((r) => r.key === 'hub')!.status).toBe('done');
+    expect(itemDocRows(ww, '2026-10-28').find((r) => r.key === 'hub')!.status).not.toBe('done');
+  });
 });
 
 describe('renderHubDoc', () => {

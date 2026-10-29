@@ -55,7 +55,8 @@ export function defaultSettings(item: Pick<HubItem, 'stage'>): HubSettings {
 }
 
 /** Doc rows for an item that has no TaskManager project yet, from roadmap data alone. */
-export function itemDocRows(item: HubItem, today: string, settings: HubSettings = defaultSettings(item)): DocRowResult[] {
+/** `hubUrl`: the item's hub page, when one exists, so the Hub row reads Done. */
+export function itemDocRows(item: HubItem, today: string, settings: HubSettings = defaultSettings(item), hubUrl?: string): DocRowResult[] {
   const c: DocContext = {
     stage: item.stage as RoadmapStage,
     phases: item.phases,
@@ -69,6 +70,7 @@ export function itemDocRows(item: HubItem, today: string, settings: HubSettings 
   for (const row of DOC_MATRIX) {
     evidence[row.key] = { link: row.roadmapLink ? item.links[row.roadmapLink] ?? null : null };
   }
+  if (hubUrl) evidence.hub = { link: hubUrl };
   return evaluateDocs(c, evidence, today);
 }
 

@@ -11,3 +11,4 @@ build/
 .logs/
 docs/confluence/inventory/
 docs/confluence/tree-plan.json
+docs/confluence/state/

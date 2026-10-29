@@ -1,0 +1,105 @@
+{
+  "planPath": "docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 0: Confirm decisions and set up the token",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 0: Confirm decisions and set up the token.\n\n```json:metadata\n{\"files\": [\"docs/confluence/README.md\"], \"verifyCommand\": \"security find-generic-password -s taskmanager-confluence >/dev/null && echo ok\", \"acceptanceCriteria\": [\"See Task 0 in the plan\"]}\n```"
+    },
+    {
+      "id": 1,
+      "subject": "Task 1: ADF helpers for the settings section and change detection",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 1: ADF helpers for the settings section and change detection.\n\n```json:metadata\n{\"files\": [\"shared/confluence-adf.ts\", \"backend/src/test/confluence-adf.test.ts\"], \"verifyCommand\": \"cd backend && npx vitest run src/test/confluence-adf.test.ts\", \"acceptanceCriteria\": [\"See Task 1 in the plan\"]}\n```",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: Classifying pages under a hub",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 2: Classifying pages under a hub.\n\n```json:metadata\n{\"files\": [\"shared/doc-evidence.ts\", \"backend/src/test/doc-evidence.test.ts\"], \"verifyCommand\": \"cd backend && npx vitest run src/test/doc-evidence.test.ts\", \"acceptanceCriteria\": [\"See Task 2 in the plan\"]}\n```",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Roll-up grids and the settings section content",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 3: Roll-up grids and the settings section content.\n\n```json:metadata\n{\"files\": [\"shared/confluence-rollup.ts\", \"backend/src/test/confluence-rollup.test.ts\"], \"verifyCommand\": \"cd backend && npx vitest run src/test/confluence-rollup.test.ts\", \"acceptanceCriteria\": [\"See Task 3 in the plan\"]}\n```",
+      "blockedBy": [
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: The pure doc-check core",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 4: The pure doc-check core.\n\n```json:metadata\n{\"files\": [\"shared/doc-check-run.ts\", \"backend/src/test/doc-check-run.test.ts\"], \"verifyCommand\": \"cd backend && npx vitest run src/test/doc-check-run.test.ts\", \"acceptanceCriteria\": [\"See Task 4 in the plan\"]}\n```",
+      "blockedBy": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: Confluence REST client",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 5: Confluence REST client.\n\n```json:metadata\n{\"files\": [\"backend/src/lib/confluence-rest.ts\", \"backend/src/test/confluence-rest.test.ts\"], \"verifyCommand\": \"cd backend && npx vitest run src/test/confluence-rest.test.ts\", \"acceptanceCriteria\": [\"See Task 5 in the plan\"]}\n```",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 6,
+      "subject": "Task 6: The CLI and the one-time settings migration",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 6: The CLI and the one-time settings migration.\n\n```json:metadata\n{\"files\": [\"backend/src/scripts/doc-check.ts\", \"backend/package.json\", \"docs/confluence/doc-check-ignore.json\", \".gitignore\"], \"verifyCommand\": \"cd backend && npx tsc --noEmit -p . && npm run doc-check -- run | tail -3\", \"acceptanceCriteria\": [\"See Task 6 in the plan\"]}\n```",
+      "blockedBy": [
+        4,
+        5
+      ]
+    },
+    {
+      "id": 7,
+      "subject": "Task 7: Backfill evidence for the pages Brice already moved",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 7: Backfill evidence for the pages Brice already moved.\n\n```json:metadata\n{\"files\": [\"docs/confluence/doc-check-ignore.json\"], \"verifyCommand\": \"cd backend && npm run doc-check -- run | grep -c 'accept '\", \"acceptanceCriteria\": [\"See Task 7 in the plan\"]}\n```",
+      "blockedBy": [
+        6
+      ]
+    },
+    {
+      "id": 8,
+      "subject": "Task 8: First write on live data",
+      "status": "completed",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 8: First write on live data.\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"cd backend && npm run doc-check -- run | tail -2\", \"acceptanceCriteria\": [\"See Task 8 in the plan\"]}\n```",
+      "blockedBy": [
+        7
+      ]
+    },
+    {
+      "id": 9,
+      "subject": "Task 9: Rework the morning briefing",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 9: Rework the morning briefing.\n\n```json:metadata\n{\"files\": [\"~/.claude/scheduled-tasks/daily-morning-briefing/SKILL.md\"], \"verifyCommand\": \"diff backup vs new SKILL.md; run_scheduled_task produces a Docs section\", \"acceptanceCriteria\": [\"See Task 9 in the plan\"]}\n```",
+      "blockedBy": [
+        8
+      ]
+    },
+    {
+      "id": 10,
+      "subject": "Task 10: Point the helpers at hubs and retire the mapping file",
+      "status": "pending",
+      "description": "See docs/superpowers/plans/2026-10-28-doc-check-and-briefing.md, Task 10: Point the helpers at hubs and retire the mapping file.\n\n```json:metadata\n{\"files\": [\"~/Claude Assistant/.claude/skills/draft-deliverables/SKILL.md\", \"~/Claude Assistant/knowledge/project-lifecycle-template.md\", \"~/Claude Assistant/state/project-timelines.md\"], \"verifyCommand\": \"grep -rln 'Canonical Page ID' ~/.claude/scheduled-tasks '~/Claude Assistant/.claude/skills'\", \"acceptanceCriteria\": [\"See Task 10 in the plan\"]}\n```",
+      "blockedBy": [
+        9
+      ]
+    }
+  ],
+  "lastUpdated": "2026-10-29T08:30:00Z"
+}
