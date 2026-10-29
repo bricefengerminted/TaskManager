@@ -82,4 +82,42 @@ describe('planDocCheck', () => {
   it('puts overdue docs in the markdown', () => {
     expect(planDocCheck(fixture()).markdown).toContain('🔴 [IDEA-1] X — Brief/PRD (due 2026-10-01)');
   });
+
+  describe('roadmap links', () => {
+    it('fills empty roadmap fields from TaskManager links and this run\'s evidence', () => {
+      const out = planDocCheck(fixture({ tmLinks: { p1: { hub: `${base}201`, figma: 'https://www.figma.com/file/abc' } } }));
+      expect(out.linkFills).toEqual([
+        { itemId: 'item-1', item: 'X', project_id: 'p1', field: 'prd', value: `${base}301` },
+        { itemId: 'item-1', item: 'X', project_id: 'p1', field: 'hub', value: `${base}201` },
+        { itemId: 'item-1', item: 'X', project_id: 'p1', field: 'figma', value: 'https://www.figma.com/file/abc' },
+      ]);
+    });
+
+    it('flags a different roadmap link instead of overwriting it', () => {
+      const f = fixture({ tmLinks: { p1: { prd: `${base}301` } } });
+      const out = planDocCheck({ ...f, items: f.items.map((i) => (i.id === 'item-1' ? { ...i, links: { prd: `${base}999` } } : i)) });
+      expect(out.linkFills.find((l) => l.field === 'prd')).toBeUndefined();
+      expect(out.flags).toContainEqual({ kind: 'roadmap_link_differs', project: '[IDEA-1] X', field: 'prd', roadmap: `${base}999`, taskmanager: `${base}301` });
+      expect(out.markdown).toContain('roadmap prd is');
+    });
+
+    it('treats another URL for the same page as already filled', () => {
+      const f = fixture({ tmLinks: { p1: { prd: `${base}301` } } });
+      const out = planDocCheck({ ...f, items: f.items.map((i) => (i.id === 'item-1' ? { ...i, links: { prd: 'https://minted.atlassian.net/wiki/spaces/PM/pages/301/X+Brief' } } : i)) });
+      expect(out.linkFills.find((l) => l.field === 'prd')).toBeUndefined();
+      expect(out.flags.find((fl) => fl.kind === 'roadmap_link_differs')).toBeUndefined();
+    });
+
+    it('never copies the OI On-Canvas PRD to a WW item', () => {
+      const f = fixture({ tmLinks: { p1: { prd: `${base}4286087221` } } });
+      const out = planDocCheck({ ...f, tree: f.tree.filter((t) => t.id !== '301'), projects: f.projects.map((p) => ({ ...p, team: 'WW' })) });
+      expect(out.linkFills).toEqual([]);
+    });
+
+    it('skips projects without a roadmap item', () => {
+      const f = fixture({ tmLinks: { p1: { hub: `${base}201` } } });
+      const out = planDocCheck({ ...f, projects: f.projects.map((p) => ({ ...p, roadmap_item_id: null })) });
+      expect(out.linkFills).toEqual([]);
+    });
+  });
 });

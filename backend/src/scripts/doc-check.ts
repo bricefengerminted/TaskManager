@@ -5,6 +5,8 @@
 //   npm run doc-check -- migrate-settings [--write]
 // Reads TaskManager at TASKMANAGER_API_URL (default http://localhost:3001/api) and Confluence
 // with the Keychain token (docs/confluence/README.md). Dry run unless --write.
+// `run` also copies TaskManager doc links into empty roadmap link fields (shared/roadmap-links.ts);
+// without --write that is a POST /links dry run.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
@@ -18,6 +20,8 @@ import { defaultSettings } from '../../../shared/confluence-hub';
 import { DOC_KEYS, type DocKey } from '../../../shared/doc-matrix';
 import type { DocHealthResponse } from '../../../shared/types';
 import { todayIso } from '../lib/doc-check';
+import { API_WRITABLE_FIELDS, fileToken, RoadmapLinksClient, type LinkResult } from '../lib/roadmap-links-client';
+import { sameLink, taskManagerLinks, type LinkFill, type ProjectLinkSource } from '../../../shared/roadmap-links';
 
 const API = process.env.TASKMANAGER_API_URL || 'http://localhost:3001/api';
 const EMAIL = process.env.CONFLUENCE_EMAIL || 'brice.fenger@minted.com';
@@ -32,6 +36,9 @@ const STATE = join(DIR, 'state');
 
 const readJson = <T>(path: string, fallback: T): T => (existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as T) : fallback);
 const conf = new ConfluenceRest({ base: API_BASE, email: EMAIL, token: () => keychainToken(EMAIL) });
+const roadmap = new RoadmapLinksClient({ token: () => fileToken() });
+/** Who confirmed the roadmap link writes (POST /links `actor`). */
+const ROADMAP_ACTOR = process.env.ROADMAP_ACTOR || 'brice.fenger@minted.com';
 
 async function tm<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API}${path}`, body === undefined ? {} : {
@@ -48,7 +55,11 @@ function manifestIds(): Record<string, string> {
   return Object.fromEntries(Object.entries(m.nodes).filter(([, v]) => v.pageId).map(([k, v]) => [k, v.pageId as string]));
 }
 
-type ProjectSettingsRow = { id: string; doc_mode: 'full' | 'one_pager_only' | null; customer_facing: boolean; waivers: Record<string, string> | null };
+type ProjectSettingsRow = {
+  id: string; doc_mode: 'full' | 'one_pager_only' | null; customer_facing: boolean; waivers: Record<string, string> | null;
+  roadmap_item_id: string | null; hub_url: string | null; one_pager_url: string | null;
+};
+type TaskRow = ProjectLinkSource['tasks'][number];
 
 async function snapshot(): Promise<DocCheckInput> {
   const ids = manifestIds();
@@ -74,6 +85,12 @@ async function snapshot(): Promise<DocCheckInput> {
       if (id && r.key !== 'hub') recordedPageIds[id] = { project_id: p.project_id, key: r.key };
     }
   }
+  const tmLinks: DocCheckInput['tmLinks'] = {};
+  for (const p of projectRows) {
+    if (!p.roadmap_item_id) continue;
+    const tasks = await tm<TaskRow[]>(`/projects/${p.id}/tasks`);
+    tmLinks[p.id] = taskManagerLinks({ hub_url: p.hub_url, one_pager_url: p.one_pager_url, tasks });
+  }
   return {
     today: todayIso(),
     base: PAGES,
@@ -83,7 +100,37 @@ async function snapshot(): Promise<DocCheckInput> {
     items,
     recordedPageIds,
     ignored: readJson<string[]>(IGNORE, []),
+    tmLinks,
   };
+}
+
+interface LinkReport { filled: string[]; already: number; held: string[]; differs: string[]; errors: string[] }
+
+/** Sends the planned fills to POST /links (dry run unless write). Never overwrites: expected is always null. */
+async function fillRoadmapLinks(fills: LinkFill[], write: boolean): Promise<LinkReport> {
+  const report: LinkReport = { filled: [], already: 0, held: [], differs: [], errors: [] };
+  const line = (f: LinkFill) => `${f.item} (${f.itemId}) ${f.field} ← ${f.value}`;
+  const send = fills.filter((f) => API_WRITABLE_FIELDS.has(f.field));
+  for (const f of fills) if (!API_WRITABLE_FIELDS.has(f.field)) report.held.push(line(f));
+  if (!send.length) return report;
+  let results: LinkResult[];
+  try {
+    results = await roadmap.updateLinks(ROADMAP_ACTOR, send.map((f) => ({ itemId: f.itemId, field: f.field, expected: null, value: f.value })), !write);
+  } catch (e) {
+    report.errors.push((e as Error).message);
+    return report;
+  }
+  for (const r of results) {
+    const f = send[r.index];
+    if (r.result === 'applied' || r.result === 'would-apply') report.filled.push(line(f));
+    else if (r.result === 'unchanged') report.already++;
+    // The snapshot said empty but the roadmap has a link: ours from an earlier run, or someone else's.
+    else if (r.result === 'conflict' && r.currentValue && sameLink(r.currentValue, f.value)) report.already++;
+    else if (r.result === 'conflict' && r.currentValue) {
+      report.differs.push(`${f.item}: roadmap ${f.field} is ${r.currentValue}, TaskManager has ${f.value} (not overwritten)`);
+    } else report.errors.push(`${line(f)}: ${r.result}`);
+  }
+  return report;
 }
 
 /** The results half of an experiment brief lives on the plan's page (spec §1); plan D6 decides "filled". */
@@ -155,16 +202,24 @@ async function run(write: boolean, diff = false) {
     }
   }
 
+  const links = await fillRoadmapLinks(out.linkFills, write);
+
   console.log(out.markdown);
+  // Roadmap differences found only by the API (the snapshot was out of date) join the Flags.
+  if (links.differs.length) console.log(`${out.flags.length ? '' : '\n**Flags**\n'}${links.differs.map((d) => `- ${d}`).join('\n')}`);
   const evidenceVerb = write ? 'recorded' : 'to record';
   const writeVerb = write ? 'written' : 'to write';
   console.log(`\n_Doc check: ${evidenceCount} docs ${evidenceVerb}, ${out.proposals.length} to confirm, ${changed} sections ${writeVerb} (${unchanged} unchanged, ${skipped.length} skipped)._`);
   if (!write) for (const c of changedPages) console.log(`- would write ${c}`);
   if (!write) for (const [pid, ev] of Object.entries(evidence)) console.log(`- would record ${Object.keys(ev).join(', ')} on ${pid}`);
   for (const s of skipped) console.log(`- skipped ${s}`);
+  console.log(`\n_Roadmap links: ${links.filled.length} ${write ? 'filled' : 'to fill'}, ${links.already} already there, ${links.held.length} waiting on the roadmap API (figma/jiraEpic)._`);
+  for (const l of links.filled) console.log(`- ${write ? 'filled' : 'would fill'} ${l}`);
+  for (const l of links.held) console.log(`- held ${l}`);
+  for (const l of links.errors) console.log(`- roadmap link error: ${l}`);
   if (write) {
     mkdirSync(STATE, { recursive: true });
-    writeFileSync(join(STATE, `${inp.today}.json`), JSON.stringify({ evidence, proposals: out.proposals, flags: out.flags, changed, unchanged, skipped }, null, 2) + '\n');
+    writeFileSync(join(STATE, `${inp.today}.json`), JSON.stringify({ evidence, proposals: out.proposals, flags: out.flags, changed, unchanged, skipped, roadmapLinks: links }, null, 2) + '\n');
   }
 }
 

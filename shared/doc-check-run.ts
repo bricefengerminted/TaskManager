@@ -9,6 +9,7 @@ import { checklistContent, defaultSettings, itemDocRows, statusContent, type Hub
 import { rollupContent, settingsContent, type RollupRow } from './confluence-rollup';
 import { confluencePageId, NEVER_LINK } from './confluence-migration';
 import { halfTitle } from './confluence-tree';
+import { LINK_DOC_KEYS, planRoadmapLinks, type LinkDocKey, type LinkFill, type RoadmapLinkName } from './roadmap-links';
 
 export interface TreePage { id: string; title: string; parentId: string | null; status: 'current' | 'draft' }
 
@@ -30,6 +31,8 @@ export interface DocCheckInput {
   recordedPageIds: Record<string, { project_id: string; key: DocKey }>;
   /** Page ids Brice marked "not a doc". */
   ignored: string[];
+  /** project_id → doc links entered in TaskManager (taskManagerLinks), copied to empty roadmap fields. */
+  tmLinks?: Record<string, Partial<Record<LinkDocKey, string>>>;
 }
 
 export interface Proposal { project_id: string; project: string; page_id: string; title: string; key: DocKey }
@@ -37,7 +40,8 @@ export type Flag =
   | { kind: 'no_hub'; project_id: string; project: string }
   | { kind: 'wrong_half'; page_id: string; title: string; expected: string }
   | { kind: 'unclassified'; page_id: string; title: string; hub: string }
-  | { kind: 'mismatch'; project: string; doc: string };
+  | { kind: 'mismatch'; project: string; doc: string }
+  | { kind: 'roadmap_link_differs'; project: string; field: RoadmapLinkName; roadmap: string; taskmanager: string };
 export interface SectionWrite { page_id: string; section: GeneratedSection; content: AdfNode[] }
 
 export interface DocCheckOutput {
@@ -46,6 +50,8 @@ export interface DocCheckOutput {
   proposals: Proposal[];
   flags: Flag[];
   writes: SectionWrite[];
+  /** Empty roadmap link fields to fill from TaskManager (sent with expected: null). */
+  linkFills: LinkFill[];
   markdown: string;
 }
 
@@ -155,7 +161,20 @@ export function planDocCheck(inp: DocCheckInput): DocCheckOutput {
     writes.push({ page_id: pageId, section: 'rollup', content: rollupContent(under.map(rollupRow)) });
   }
 
-  return { evidence, proposals, flags, writes, markdown: renderMarkdown(inp, proposals, flags) };
+  // TaskManager → roadmap links. Pages this run just recorded count too, so a dry run shows them.
+  const tmLinks: Record<string, Partial<Record<LinkDocKey, string>>> = {};
+  for (const p of inp.projects) {
+    const links = { ...inp.tmLinks?.[p.project_id] };
+    for (const key of LINK_DOC_KEYS) {
+      const url = evidence[p.project_id]?.[key]?.page_url;
+      if (!links[key] && url) links[key] = url;
+    }
+    tmLinks[p.project_id] = links;
+  }
+  const { fills: linkFills, differs } = planRoadmapLinks(inp.projects, inp.items, tmLinks);
+  for (const d of differs) flags.push({ kind: 'roadmap_link_differs', project: d.project, field: d.field, roadmap: d.roadmap, taskmanager: d.taskmanager });
+
+  return { evidence, proposals, flags, writes, linkFills, markdown: renderMarkdown(inp, proposals, flags) };
 }
 
 function flagLine(f: Flag): string {
@@ -164,6 +183,7 @@ function flagLine(f: Flag): string {
     case 'wrong_half': return `${f.title} should move to ${f.expected}`;
     case 'unclassified': return `"${f.title}" under ${f.hub} isn't a recognised doc (\`ignore ${f.page_id}\` to hide)`;
     case 'mismatch': return `${f.project}: ${f.doc} link differs between the roadmap and Confluence`;
+    case 'roadmap_link_differs': return `${f.project}: roadmap ${f.field} is ${f.roadmap}, TaskManager has ${f.taskmanager} (not overwritten)`;
   }
 }
 
