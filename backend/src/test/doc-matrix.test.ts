@@ -117,12 +117,27 @@ describe('evaluateDocs', () => {
   it('only asks a proposal for its one-pager, undated', () => {
     const ctx: DocContext = { ...modular, stage: null, phases: {}, entered_scope_at: null };
     const rows = evaluateDocs(ctx, {}, TODAY);
-    expect(rows.map((x) => x.key)).toEqual(['one_pager']);
+    expect(rows.map((x) => x.key)).toEqual(['one_pager', 'review_sizing']);
     expect(rows[0].due).toBeNull();
     expect(rows[0].due_rule).toBe('Before roadmap');
     expect(rows[0].status).toBe('missing');
     expect(evaluateDocs(ctx, { one_pager: { page_url: 'https://x/pages/3', published: false } }, TODAY)[0].status).toBe('draft');
-    expect(evaluateDocs(ctx, { one_pager: { page_url: 'https://x/pages/3', published: true } }, TODAY)[0].status).toBe('done');
+    expect(evaluateDocs(ctx, { one_pager: { page_url: 'https://x/pages/3', published: true } }, TODAY)[0].status).toBe('review');
+    expect(evaluateDocs(ctx, { one_pager: { page_url: 'https://x/pages/3', published: true, task_done: true } }, TODAY)[0].status).toBe('done');
+  });
+
+  it('needs the one-pager task ticked on a proposal, so reopening it takes it out of done', () => {
+    const ctx: DocContext = { ...modular, stage: null, phases: {}, entered_scope_at: null };
+    const link = 'https://minted.atlassian.net/wiki/spaces/PM/pages/3';
+    expect(byKey(evaluateDocs(ctx, { one_pager: { link, task_done: true } }, TODAY)).one_pager.status).toBe('done');
+    expect(byKey(evaluateDocs(ctx, { one_pager: { link, task_done: false } }, TODAY)).one_pager.status).toBe('review');
+  });
+
+  it('ticks team review and sizing from its task alone, and only for proposals', () => {
+    const ctx: DocContext = { ...modular, stage: null, phases: {}, entered_scope_at: null };
+    expect(byKey(evaluateDocs(ctx, {}, TODAY)).review_sizing.status).toBe('missing');
+    expect(byKey(evaluateDocs(ctx, { review_sizing: { task_done: true } }, TODAY)).review_sizing.status).toBe('done');
+    expect(evaluateDocs(modular, {}, TODAY).some((r) => r.key === 'review_sizing')).toBe(false);
   });
 
   it('flags a mismatch between the roadmap link and the hub child page', () => {
@@ -156,7 +171,7 @@ describe('review fixes', () => {
 
   it('gives a proposal only the one-pager even with phases', () => {
     const ctx = mk({ stage: null, phases: { ux: { start: '2026-01-01' }, measure: { start: '2026-02-01' } } });
-    expect(evaluateDocs(ctx, {}, TODAY).map((x) => x.key)).toEqual(['one_pager']);
+    expect(evaluateDocs(ctx, {}, TODAY).map((x) => x.key)).toEqual(['one_pager', 'review_sizing']);
   });
 
   it('normalizes a timestamp today', () => {

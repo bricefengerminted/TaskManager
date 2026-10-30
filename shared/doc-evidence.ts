@@ -27,7 +27,7 @@ export function classifyTitle(title: string): Classification | null {
   // DOC_MATRIX lists experiment_brief.plan before .results, and both share a page title,
   // so an exact Experiment Brief match is the plan; the CLI records results from the same page.
   for (const row of DOC_MATRIX) {
-    if (row.key === 'hub' || row.linkOnly) continue;
+    if (row.key === 'hub' || row.linkOnly || row.taskOnly) continue;
     if (t.endsWith(` - ${row.pageTitle}`) || t.endsWith(` — ${row.pageTitle}`)) return { key: row.key, confidence: 'exact' };
   }
   for (const [re, key] of KEYWORDS) if (re.test(t)) return { key, confidence: 'guess' };

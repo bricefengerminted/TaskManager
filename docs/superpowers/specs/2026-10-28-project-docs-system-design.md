@@ -97,6 +97,7 @@ label, a `requiredWhen` predicate, a due rule with an optional fallback, and how
 |---|---|---|---|---|---|
 | `hub` | — | Project hub | Always, once on the roadmap | When the item enters scope | — |
 | `one_pager` | Discovery | One-pager | Always | Discovery start +2w | Entered roadmap +2w |
+| `review_sizing` | Discovery | Team review & sizing (a step, not a page: done when its task is ticked) | Proposals only | — | — |
 | `research` | Discovery | Research synthesis | UX Research phase is on | Discovery end | Build start −8w |
 | `prd` | UX | Brief/PRD, built from the one-pager | Always, unless `doc_mode = one_pager_only` | Build start −2w | — |
 | `figma` | UX | Figma design (link) | UX phase is on | Build start | — |

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { DocHealthProject, DocKey, DocRowResult, Project, ProjectDocsInput } from '@shared/types';
 import { api } from '../../api/client';
+import { docRow } from '@shared/doc-matrix';
 
 // Hub is done once it has a link; it has no task to tick or waive.
 const LINK_ONLY: DocKey[] = ['hub'];
@@ -24,6 +25,9 @@ export function DocRowEditor({ project, row, onSaved, updateProject, onClose }: 
   useEffect(() => { setDue(row.due ?? ''); }, [row.due]);
 
   const linkOnly = LINK_ONLY.includes(row.key);
+  // A step like team review and sizing: ticked from here, with an optional notes link.
+  const taskOnly = Boolean(docRow(row.key).taskOnly);
+  const canTick = taskOnly || Boolean(row.link);
   const waivers = project.waivers ?? {};
   const projectWaiver = waivers[row.key];
   const pinned = row.due_rule === 'Pinned';
@@ -96,8 +100,8 @@ export function DocRowEditor({ project, row, onSaved, updateProject, onClose }: 
           ) : (
             <button
               type="button"
-              disabled={saving || !row.link || ruleWaived}
-              title={ruleWaived ? 'Not required for this stage or doc mode' : row.link ? undefined : 'Add a link first'}
+              disabled={saving || !canTick || ruleWaived}
+              title={ruleWaived ? 'Not required for this stage or doc mode' : canTick ? undefined : 'Add a link first'}
               onClick={() => save({ done: true })}
               className={quiet}
             >
