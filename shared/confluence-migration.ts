@@ -2,7 +2,7 @@
 // nothing here writes to Confluence. Spec: §3 "Migration".
 
 import { docRow } from './doc-matrix';
-import { docPageTitle, teamPrefix, type TitleCollision, type TreeItem, type TreeNode } from './confluence-tree';
+import { docPageTitle, teamPrefix, HUB_SUFFIX, TITLE_SEP, type TitleCollision, type TreeItem, type TreeNode } from './confluence-tree';
 
 export interface PageRef {
   id: string;
@@ -114,7 +114,7 @@ export function buildMigrationList(input: MigrationInput): MigrationRow[] {
       if (banned) throw new Error(`Override refused for ${m.page.id}: ${banned.reason}`);
       rows.push({
         action: 'move_rename', pageId: m.page.id, currentTitle: m.page.title,
-        newTitle: hub.title.replace(/ — Hub$/, ` — ${docRow('prd').pageTitle}`), newParentKey: hub.key,
+        newTitle: hub.title.replace(HUB_SUFFIX, `${TITLE_SEP}${docRow('prd').pageTitle}`), newParentKey: hub.key,
         note: 'Suggested match (not found by name or roadmap link). Page ID and links are kept.',
       });
       continue;

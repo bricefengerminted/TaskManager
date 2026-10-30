@@ -8,6 +8,10 @@ describe('classifyTitle', () => {
     expect(classifyTitle('[OI] Guest RSVP Iteration — Release Notes')).toEqual({ key: 'release_notes', confidence: 'exact' });
     expect(classifyTitle('[OI] Guest RSVP Iteration — Experiment Brief')).toEqual({ key: 'experiment_brief.plan', confidence: 'exact' });
   });
+  it('matches titles that use a hyphen separator', () => {
+    expect(classifyTitle('[WW] Modular Elements - Brief/PRD')).toEqual({ key: 'prd', confidence: 'exact' });
+    expect(classifyTitle('[OI] Guest RSVP Iteration - Experiment Brief')).toEqual({ key: 'experiment_brief.plan', confidence: 'exact' });
+  });
   it('guesses from keywords', () => {
     expect(classifyTitle('Experiment Brief: OI Messaging Center')).toEqual({ key: 'experiment_brief.plan', confidence: 'guess' });
     expect(classifyTitle('Adult Child/Maybe Experimentation Doc')).toEqual({ key: 'experiment_brief.plan', confidence: 'guess' });
