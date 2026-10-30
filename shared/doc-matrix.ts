@@ -16,7 +16,7 @@ export interface PhaseDates {
 export type Phases = Partial<Record<PhaseKey, PhaseDates>>;
 
 export type DocKey =
-  | 'hub' | 'one_pager' | 'research' | 'prd' | 'figma' | 'experiment_brief.plan'
+  | 'hub' | 'one_pager' | 'review_sizing' | 'research' | 'prd' | 'figma' | 'experiment_brief.plan'
   | 'jira_epic' | 'cs_marketing_brief' | 'release_notes'
   | 'experiment_brief.results';
 
@@ -78,6 +78,10 @@ export interface DocRow {
   linkOnly?: boolean;
   /** Done only when the page's Results section has content. */
   needsResults?: boolean;
+  /** A step, not a page: done when its task is ticked, no link needed. */
+  taskOnly?: boolean;
+  /** Only shown while the project is a proposal (not yet on the roadmap). */
+  proposalOnly?: boolean;
 }
 
 export interface DocRowResult {
@@ -102,6 +106,10 @@ export const DOC_MATRIX: DocRow[] = [
   { key: 'one_pager', phase: 'discovery', label: 'One-Pager', pageTitle: 'One-Pager', required: () => true,
     due: { anchor: 'discovery.start', offsetDays: 14 }, fallback: { anchor: 'entered_scope', offsetDays: 14 },
     roadmapLink: 'onePager' },
+  // After the one-pager is written, the team reviews it and Eng sizes it; then Go / No-go.
+  { key: 'review_sizing', phase: 'discovery', label: 'Team review & sizing', pageTitle: 'Review & Sizing',
+    required: (c) => c.stage === null, due: { anchor: 'entered_scope', offsetDays: 14 },
+    taskOnly: true, proposalOnly: true },
   { key: 'research', phase: 'discovery', label: 'Research Synthesis', pageTitle: 'Research Synthesis',
     required: (c) => hasPhase(c, 'uxr'),
     due: { anchor: 'discovery.end', offsetDays: 0 }, fallback: { anchor: 'build.start', offsetDays: -56 } },
@@ -209,7 +217,7 @@ export function isStopped(c: DocContext): boolean {
 
 export function isActive(row: DocRow, c: DocContext, due: string | null, today: string): boolean {
   if (row.phase === null) return true;
-  if (c.stage === null) return row.key === 'one_pager';
+  if (c.stage === null) return row.key === 'one_pager' || Boolean(row.proposalOnly);
   if (STAGE_PHASE_INDEX[c.stage] >= PHASE_INDEX[row.phase]) return true;
   return due !== null && today >= addDays(due, -28);
 }
@@ -238,13 +246,17 @@ function rowStatus(row: DocRow, c: DocContext, ev: DocEvidence, due: string | nu
   const published = linkPublished || Boolean(ev.published);
   // Link-only rows (hub, Figma, Jira Epic) are done once a published link exists, from the
   // roadmap or entered in TaskManager: the roadmap can't take Figma or Jira Epic links yet.
-  const complete = row.linkOnly
-    ? published
-    : published && (proposal || Boolean(ev.task_done)) && (!row.needsResults || Boolean(ev.results_filled));
+  // Every other row also needs its task ticked, proposals included: a published one-pager
+  // is written, not signed off.
+  const complete = row.taskOnly
+    ? Boolean(ev.task_done)
+    : row.linkOnly
+      ? published
+      : published && Boolean(ev.task_done) && (!row.needsResults || Boolean(ev.results_filled));
 
   if (complete) return 'done';
   if (isStopped(c) || c.waivers[row.key] || (row.key === 'prd' && c.doc_mode === 'one_pager_only')) return 'waived';
-  if (proposal) return exists ? 'draft' : 'missing';
+  if (proposal) return published ? 'review' : exists ? 'draft' : 'missing';
   if (due === null) return 'cant_date';
   if (!isActive(row, c, due, today)) return 'inactive';
   if (today > due) return 'overdue';
@@ -262,7 +274,7 @@ export function evaluateDocs(
   const t = today.slice(0, 10);
   const results: DocRowResult[] = [];
   for (const row of DOC_MATRIX) {
-    if (c.stage === null && row.key !== 'one_pager') continue;
+    if (c.stage === null && row.key !== 'one_pager' && !row.proposalOnly) continue;
     if (!row.required(c)) continue;
     const ev = evidence[row.key] ?? {};
     const proposal = c.stage === null;

@@ -9,7 +9,7 @@ import { DOC_STATUS_META, DocStatusChip, FlagChips } from './DocStatusChip';
 const HALF_RE = /^\d{4}-H[12]$/;
 const STATUS_FILTERS: DocStatus[] = ['overdue', 'due_soon', 'missing', 'cant_date', 'draft', 'review'];
 const COLUMN_LABELS: Record<DocKey, string> = {
-  hub: 'Hub', one_pager: '1-pager', research: 'Research', prd: 'PRD', figma: 'Figma',
+  hub: 'Hub', one_pager: '1-pager', review_sizing: 'Review', research: 'Research', prd: 'PRD', figma: 'Figma',
   'experiment_brief.plan': 'Exp plan', jira_epic: 'Epic', cs_marketing_brief: 'CS/Mkt',
   release_notes: 'Rel notes', 'experiment_brief.results': 'Exp results',
 };

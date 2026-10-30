@@ -291,7 +291,7 @@ router.post('/row', asyncHandler(async (req: Request, res: Response) => {
   if (!row) return res.status(400).json({ error: `${key} is not required for this project` });
   const matrix = docRow(key);
   const newLink = typeof link === 'string' ? link.trim() : link;
-  if (done === true && !(newLink ?? row.link)) return res.status(400).json({ error: 'Add a link before marking it done' });
+  if (done === true && !matrix.taskOnly && !(newLink ?? row.link)) return res.status(400).json({ error: 'Add a link before marking it done' });
   const waivers = parseJson<Record<string, string>>(p.waivers, {});
   if (done === true && row.status === 'waived' && !waivers[key]) {
     return res.status(400).json({ error: "Not required for this project's stage or doc mode, so it can't be marked done" });
