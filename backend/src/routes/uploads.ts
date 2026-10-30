@@ -30,7 +30,7 @@ const MAX_DIMENSION = 3840; // 4K max on longest edge
 import { asyncHandler } from '../lib/async-handler';
 const router = Router();
 
-// POST /api/uploads — upload one or more images, compressed to 4K JPEG
+// POST /api/uploads: upload one or more images, compressed to 4K JPEG
 router.post('/', upload.array('images', 10), asyncHandler(async (req: Request, res: Response) => {
   const files = req.files as Express.Multer.File[];
   if (!files || files.length === 0) {

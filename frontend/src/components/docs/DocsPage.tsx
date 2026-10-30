@@ -21,7 +21,7 @@ function groupProjects(projects: DocHealthProject[]): Group[] {
   for (const p of projects) {
     const key = p.docs_stage === 'proposal' ? 'zz-proposals' : p.half && HALF_RE.test(p.half) ? p.half : 'zy-unscheduled';
     const teams = groups.get(key) ?? new Map<string, DocHealthProject[]>();
-    const team = p.team ?? '—';
+    const team = p.team ?? '-';
     teams.set(team, [...(teams.get(team) ?? []), p]);
     groups.set(key, teams);
   }

@@ -80,7 +80,7 @@ describe('planDocCheck', () => {
   });
 
   it('puts overdue docs in the markdown', () => {
-    expect(planDocCheck(fixture()).markdown).toContain('🔴 [IDEA-1] X — Brief/PRD (due 2026-10-01)');
+    expect(planDocCheck(fixture()).markdown).toContain('🔴 [IDEA-1] X: Brief/PRD (due 2026-10-01)');
   });
 
   describe('roadmap links', () => {

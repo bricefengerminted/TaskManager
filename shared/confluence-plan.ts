@@ -72,7 +72,7 @@ export function buildPlan(inp: PlanInputs): Plan {
   const planned: PlannedNode[] = nodes.map((n) => {
     if (n.kind !== 'hub') return { ...n, body: renderRollupDoc(rollupIntro(n)) };
     if (n.offRoadmap) {
-      const stub: HubItem = { id: n.key, name: n.title, team_name: TEAM_NAME[n.team!], stage: '—', status: null, pm_name: null, jira_key: null, first_seen_at: null, phases: {}, links: {} };
+      const stub: HubItem = { id: n.key, name: n.title, team_name: TEAM_NAME[n.team!], stage: '-', status: null, pm_name: null, jira_key: null, first_seen_at: null, phases: {}, links: {} };
       return { ...n, body: renderHubDoc({ item: stub, rows: [], today: inp.today, offRoadmap: true, settings: defaultSettings(stub) }) };
     }
     const item = items.get(n.itemId!)!;

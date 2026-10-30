@@ -110,7 +110,7 @@ export const DOC_MATRIX: DocRow[] = [
     due: { anchor: 'build.start', offsetDays: -14 }, roadmapLink: 'prd' },
   { key: 'figma', phase: 'ux', label: 'Figma', pageTitle: 'Figma', required: (c) => hasPhase(c, 'ux'),
     due: { anchor: 'build.start', offsetDays: 0 }, roadmapLink: 'figma', linkOnly: true },
-  { key: 'experiment_brief.plan', phase: 'ux', label: 'Experiment Brief — Plan', pageTitle: 'Experiment Brief',
+  { key: 'experiment_brief.plan', phase: 'ux', label: 'Experiment Brief: Plan', pageTitle: 'Experiment Brief',
     required: (c) => hasPhase(c, 'measure'),
     due: { anchor: 'build.start', offsetDays: 0 }, roadmapLink: 'experimentBrief' },
   { key: 'jira_epic', phase: 'build', label: 'Jira Epic', pageTitle: 'Jira Epic', required: onRoadmap,
@@ -121,7 +121,7 @@ export const DOC_MATRIX: DocRow[] = [
   { key: 'release_notes', phase: 'build', label: 'Release Notes', pageTitle: 'Release Notes', required: onRoadmap,
     due: { anchor: 'build.end', offsetDays: 0 }, roadmapLink: 'releaseNotes' },
   // One experimentation doc: the plan row ticks when it's written, this row when its Results are filled in.
-  { key: 'experiment_brief.results', phase: 'measure', label: 'Experiment Brief — Results', pageTitle: 'Experiment Brief',
+  { key: 'experiment_brief.results', phase: 'measure', label: 'Experiment Brief: Results', pageTitle: 'Experiment Brief',
     required: (c) => hasPhase(c, 'measure'),
     due: { anchor: 'measure.end', offsetDays: 0 }, fallback: { anchor: 'build.end', offsetDays: 42 },
     roadmapLink: 'experimentBrief', needsResults: true },

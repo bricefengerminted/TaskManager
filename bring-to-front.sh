@@ -1,6 +1,6 @@
 #!/bin/bash
 # ──────────────────────────────────────────────
-# bring-to-front.sh — Raise the TaskManager window
+# bring-to-front.sh: Raise the TaskManager window
 #
 # Finds the Chrome window titled "TaskManager" and brings it to front.
 # Returns exit code 0 if found, 1 if not found.

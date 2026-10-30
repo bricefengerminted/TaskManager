@@ -32,7 +32,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     .orderBy(asc(tasks.position))
     .all();
 
-  // Optional filters (applied in JS — dataset is single-user small)
+  // Optional filters (applied in JS; dataset is single-user small)
   const docTypeFilter = req.query.doc_type;
   if (typeof docTypeFilter === 'string' && docTypeFilter.length > 0) {
     rows = rows.filter((r) => r.doc_type === docTypeFilter);
@@ -44,7 +44,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() + n);
       const cutoffStr = cutoff.toISOString().split('T')[0];
-      // due_date is 'YYYY-MM-DD' — lexical <= is correct for ISO dates; includes overdue
+      // due_date is 'YYYY-MM-DD', so lexical <= is correct for ISO dates; includes overdue
       rows = rows.filter((r) => r.due_date != null && r.due_date <= cutoffStr);
     }
   }

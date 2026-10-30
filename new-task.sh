@@ -1,6 +1,6 @@
 #!/bin/bash
 # ──────────────────────────────────────────────
-# new-task.sh — Open TaskManager and start the New Task flow
+# new-task.sh: Open TaskManager and start the New Task flow
 #
 # If app window exists: bring to front, then trigger modal via JS
 # If servers running but no window: open --app window with ?action=new-task
@@ -51,7 +51,7 @@ APPLESCRIPT
   exit 0
 fi
 
-# ── Step 2: No existing window — create one ──
+# ── Step 2: No existing window, create one ──
 
 # If servers are running, open a new --app window with the action param
 if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2>&1; then
@@ -59,7 +59,7 @@ if /usr/bin/curl -s --max-time 2 "http://localhost:$FRONTEND_PORT" > /dev/null 2
   exit 0
 fi
 
-# Servers not running — start them, wait, then open
+# Servers not running: start them, wait, then open
 if [ -f "$SCRIPT_DIR/start.sh" ]; then
   open -a Terminal "$SCRIPT_DIR/start.sh"
 

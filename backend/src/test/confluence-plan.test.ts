@@ -29,7 +29,7 @@ describe('buildPlan', () => {
   it('uses doc health for linked projects', () => {
     const hub = plan.nodes.find((n) => n.key === 'hub:oi-4')!;
     expect(adfText(hub.body)).toContain('🔴 Overdue');
-    expect(adfText(hub.body)).toContain('one_pager — predates system');
+    expect(adfText(hub.body)).toContain('one_pager: predates system');
   });
   it('reports collisions and builds the migration list', () => {
     expect(plan.collisions).toEqual([{ key: 'half:2026-H1', title: "H1'26", existingId: '3664740359' }]);

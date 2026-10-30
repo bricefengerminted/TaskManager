@@ -27,7 +27,7 @@ if command -v iconutil &>/dev/null; then
   echo "AppIcon.icns created successfully!"
   echo "You can now double-click TaskManager.app or drag it to your Dock."
 else
-  echo "iconutil not found — this script must be run on macOS."
+  echo "iconutil not found. This script must be run on macOS."
   rm -rf "$ICONSET"
   exit 1
 fi
