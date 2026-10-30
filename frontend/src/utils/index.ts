@@ -44,7 +44,7 @@ export function isSlackUrl(url: string): boolean {
 }
 
 /**
- * Opens a URL — Slack links are sent to the backend which converts them
+ * Opens a URL. Slack links are sent to the backend which converts them
  * to slack:// deep links and opens them via the OS (routed to Rambox).
  * Everything else opens in a new browser tab.
  */

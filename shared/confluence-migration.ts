@@ -163,7 +163,7 @@ export function buildMigrationList(input: MigrationInput): MigrationRow[] {
   return rows.map((r, i) => ({ n: i + 1, ...r }));
 }
 
-const cell = (s: string | null) => (s ?? '—').replace(/\|/g, '\\|');
+const cell = (s: string | null) => (s ?? '-').replace(/\|/g, '\\|');
 
 export function renderMigrationMarkdown(rows: MigrationRow[]): string {
   return [

@@ -74,13 +74,13 @@ export function itemDocRows(item: HubItem, today: string, settings: HubSettings 
   return evaluateDocs(c, evidence, today);
 }
 
-const dash = (v: string | null | undefined) => (v && v.trim() ? v : '—');
+const dash = (v: string | null | undefined) => (v && v.trim() ? v : '-');
 
 export function statusContent(item: HubItem, today: string): AdfNode[] {
   const kv = (k: string, v: string): AdfNode[][] => [[text(k)], [text(v)]];
   const phaseRows = PHASE_LABELS.map(([key, label]) => {
     const ph = item.phases[key];
-    return kv(label, ph?.start || ph?.end ? `${dash(ph.start)} → ${dash(ph.end)}` : '—');
+    return kv(label, ph?.start || ph?.end ? `${dash(ph.start)} → ${dash(ph.end)}` : '-');
   });
   return [
     table(['Field', 'Value'], [
@@ -107,11 +107,11 @@ export function checklistContent(rows: DocRowResult[]): AdfNode[] {
   return [
     table(['Doc', 'Phase', 'Status', 'Due', 'Rule', 'Link'], rows.map((r) => [
       [text(r.label)],
-      [text(r.phase ?? '—')],
+      [text(r.phase ?? '-')],
       [text(statusText(r))],
-      [text(r.due ?? '—')],
+      [text(r.due ?? '-')],
       [text(r.due_rule)],
-      r.link && r.link.startsWith('https://') ? [link('Open', r.link)] : [text('—')],
+      r.link && r.link.startsWith('https://') ? [link('Open', r.link)] : [text('-')],
     ])),
   ];
 }
@@ -121,7 +121,7 @@ function settingsTable(s: HubSettings): AdfNode {
   return table(['Setting', 'Value'], [
     [[text('doc_mode')], [text(s.doc_mode)]],
     [[text('customer-facing launch')], [text(s.customer_facing ? 'yes' : 'no')]],
-    [[text('waivers')], [text(waivers.length ? waivers.map(([k, why]) => `${k} — ${why}`).join('; ') : 'none')]],
+    [[text('waivers')], [text(waivers.length ? waivers.map(([k, why]) => `${k}: ${why}`).join('; ') : 'none')]],
   ]);
 }
 
@@ -148,11 +148,11 @@ export function renderHubDoc(input: HubInput): AdfDoc {
     h(2, 'Links'),
     bulletList([[text('Slack: ')], [text('Dashboards: ')]]),
     h(2, 'Decisions log'),
-    p(em('Date — decision — why.')),
+    p(em('Date, decision, why.')),
     h(2, 'Open questions'),
     p(),
     h(2, 'Settings'),
-    p(em('Read by the doc check. Edit the Value column only; waivers are "doc_key — reason", separated by ";".')),
+    p(em('Read by the doc check. Edit the Value column only; waivers are "doc_key: reason", separated by ";".')),
     settingsTable(settings),
     ...(input.adoptedContent?.length ? [h(2, 'Background (from the original page)'), ...input.adoptedContent] : []),
   ]);

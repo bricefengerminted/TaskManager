@@ -39,7 +39,7 @@ export function serializeRoadmapItem(row: RoadmapItemRow, projectId: string | nu
   };
 }
 
-// POST /api/roadmap/sync — upsert a snapshot pushed by Claude
+// POST /api/roadmap/sync: upsert a snapshot pushed by Claude
 router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
   const items: RoadmapApiItem[] | undefined = req.body?.items;
   if (!Array.isArray(items)) return res.status(400).json({ error: 'items array is required' });

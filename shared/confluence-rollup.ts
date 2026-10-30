@@ -21,10 +21,10 @@ export function rollupContent(rows: RollupRow[]): AdfNode[] {
     ['Project', 'Stage', ...cols.map((c) => c.label)],
     sorted.map((r) => [
       [r.hubUrl ? link(r.name, r.hubUrl) : text(r.name)],
-      [text(r.stage ?? '—')],
+      [text(r.stage ?? '-')],
       ...cols.map((c) => {
         const s = r.cells[c.key];
-        return [text(s ? STATUS_LABEL[s] : '—')];
+        return [text(s ? STATUS_LABEL[s] : '-')];
       }),
     ]),
   )];
@@ -37,7 +37,7 @@ export function settingsContent(s: HubSettings): AdfNode[] {
     table(['Setting', 'Value'], [
       [[text('doc_mode')], [text(s.doc_mode)]],
       [[text('customer-facing launch')], [text(s.customer_facing ? 'yes' : 'no')]],
-      [[text('waivers')], [text(waivers.length ? waivers.map(([k, why]) => `${k} — ${why}`).join('; ') : 'none')]],
+      [[text('waivers')], [text(waivers.length ? waivers.map(([k, why]) => `${k}: ${why}`).join('; ') : 'none')]],
     ]),
   ];
 }

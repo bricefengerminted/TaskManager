@@ -3,7 +3,7 @@ import type { DocStatus } from '@shared/types';
 export const DOC_STATUS_META: Record<DocStatus, { icon: string; label: string; className: string }> = {
   done: { icon: '✅', label: 'Done', className: 'bg-green-50 text-green-700 border-green-200' },
   draft: { icon: '📝', label: 'Draft', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  review: { icon: '📄', label: 'Published — tick task', className: 'bg-sky-50 text-sky-700 border-sky-200' },
+  review: { icon: '📄', label: 'Published, tick the task', className: 'bg-sky-50 text-sky-700 border-sky-200' },
   due_soon: { icon: '⏳', label: 'Due soon', className: 'bg-yellow-50 text-yellow-800 border-yellow-200' },
   overdue: { icon: '🔴', label: 'Overdue', className: 'bg-red-50 text-red-700 border-red-200' },
   missing: { icon: '⚪', label: 'Missing', className: 'bg-slate-50 text-slate-600 border-slate-200' },

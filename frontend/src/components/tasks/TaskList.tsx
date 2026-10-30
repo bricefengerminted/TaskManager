@@ -111,7 +111,7 @@ export function TaskList({ projectId, tasks, onEditTask }: Props) {
                     {isOverdue(task.due_date, task.status) ? '⚠ ' : ''}{formatDate(task.due_date)}
                   </span>
                 ) : (
-                  <span className="text-xs text-slate-300">—</span>
+                  <span className="text-xs text-slate-300">-</span>
                 )}
               </td>
               <td className="px-4 py-3">

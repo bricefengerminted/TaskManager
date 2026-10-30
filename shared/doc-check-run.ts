@@ -193,15 +193,15 @@ function renderMarkdown(inp: DocCheckInput, proposals: Proposal[], flags: Flag[]
   const dueSoon: string[] = [];
   for (const p of inp.projects) {
     for (const r of p.rows) {
-      if (r.status === 'overdue') overdue.push(`- 🔴 ${p.name} — ${r.label} (due ${r.due})`);
-      else if (r.status === 'due_soon' && r.due && r.due <= soon) dueSoon.push(`- ⏳ ${p.name} — ${r.label} (due ${r.due})`);
+      if (r.status === 'overdue') overdue.push(`- 🔴 ${p.name}: ${r.label} (due ${r.due})`);
+      else if (r.status === 'due_soon' && r.due && r.due <= soon) dueSoon.push(`- ⏳ ${p.name}: ${r.label} (due ${r.due})`);
     }
   }
   const lines = ['## 📚 Docs'];
   lines.push(overdue.length ? `**Overdue (${overdue.length})**\n${overdue.join('\n')}` : '**Overdue:** none');
   if (dueSoon.length) lines.push(`**Due this week**\n${dueSoon.join('\n')}`);
   if (proposals.length) {
-    lines.push(`**Looks like a doc — confirm?**\n${proposals
+    lines.push(`**Looks like a doc. Confirm?**\n${proposals
       .map((pr) => `- ${pr.project}: "${pr.title}" → ${pr.key} (\`accept ${pr.project_id} ${pr.key} ${pr.page_id}\`)`)
       .join('\n')}`);
   }

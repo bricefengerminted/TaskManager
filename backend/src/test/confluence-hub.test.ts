@@ -52,7 +52,7 @@ describe('renderHubDoc', () => {
     expect(s).toContain('IDEA-932');
     expect(s).toContain('2026-08-04 → 2026-11-10');
     expect(s).toContain('❓ Not in roadmap snapshot');
-    expect(s).toContain('UX Research —');
+    expect(s).toContain('UX Research -');
   });
 
   it('labels checklist statuses', () => {
@@ -77,7 +77,7 @@ describe('renderHubDoc', () => {
     const s = adfText(d);
     expect(s).toContain('doc_mode full');
     expect(s).toContain('customer-facing launch yes');
-    expect(s).toContain('one_pager — predates system');
+    expect(s).toContain('one_pager: predates system');
   });
 
   it('survives a rewrite of its generated sections', () => {

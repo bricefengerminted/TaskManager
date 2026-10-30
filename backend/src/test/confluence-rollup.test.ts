@@ -24,7 +24,7 @@ describe('rollupContent', () => {
 describe('settingsContent', () => {
   it('shows waivers and the TaskManager note', () => {
     const t = adfText(doc(settingsContent({ doc_mode: 'full', customer_facing: false, waivers: { one_pager: 'predates system' } })));
-    expect(t).toContain('one_pager — predates system');
+    expect(t).toContain('one_pager: predates system');
     expect(t).toContain('Change these in TaskManager');
   });
 });

@@ -125,7 +125,7 @@ export function DocsPanel({ project, refreshKey = '' }: { project: Project; refr
         </button>
         {project.docs_stage === 'roadmap' ? (
           <span className="text-slate-500">
-            {health ? `${halfLabel(health.half)} · ${project.team ?? '—'} · ${health.roadmap_stage ?? '—'}` : loading ? 'Loading…' : '—'}
+            {health ? `${halfLabel(health.half)} · ${project.team ?? '-'} · ${health.roadmap_stage ?? '-'}` : loading ? 'Loading…' : '-'}
           </span>
         ) : (
           <span className="text-slate-500">
@@ -216,7 +216,7 @@ export function DocsPanel({ project, refreshKey = '' }: { project: Project; refr
                   <td className="py-1.5 pr-4 text-slate-700">
                     {link ? <a href={link} target="_blank" rel="noreferrer" className="hover:underline">{r.label}</a> : r.label}
                   </td>
-                  <td className="py-1.5 pr-4 text-slate-500 whitespace-nowrap">{r.due ? formatDate(r.due) : '—'}</td>
+                  <td className="py-1.5 pr-4 text-slate-500 whitespace-nowrap">{r.due ? formatDate(r.due) : '-'}</td>
                   <td className="py-1.5 pr-4 text-slate-400 whitespace-nowrap">
                     {r.status === 'cant_date' && r.needs.length ? `needs: ${r.needs.join(' or ')}` : r.due_rule}
                   </td>
