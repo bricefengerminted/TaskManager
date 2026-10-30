@@ -1,7 +1,7 @@
 // backend/src/test/confluence-tree.test.ts
 import { describe, it, expect } from 'vitest';
 import {
-  hubTitle, docPageTitle, halfTitle, teamPrefix, displayName, planTree, findTitleCollisions,
+  hubTitle, docPageTitle, halfTitle, HUB_SUFFIX, teamPrefix, displayName, planTree, findTitleCollisions,
   type TreeItem,
 } from '../../../shared/confluence-tree';
 
@@ -30,9 +30,14 @@ describe('titles', () => {
   });
 
   it('builds hub and doc page titles', () => {
-    expect(hubTitle('WW', 'WW - Modular Elements ')).toBe('[WW] Modular Elements — Hub');
-    expect(docPageTitle('OI', '[OI] Messaging Center', 'prd')).toBe('[OI] Messaging Center — Brief/PRD');
-    expect(docPageTitle('OI', 'Messaging Center', 'experiment_brief.results')).toBe('[OI] Messaging Center — Experiment Brief');
+    expect(hubTitle('WW', 'WW - Modular Elements ')).toBe('[WW] Modular Elements - Hub');
+    expect(docPageTitle('OI', '[OI] Messaging Center', 'prd')).toBe('[OI] Messaging Center - Brief/PRD');
+    expect(docPageTitle('OI', 'Messaging Center', 'experiment_brief.results')).toBe('[OI] Messaging Center - Experiment Brief');
+  });
+
+  it('strips the hub suffix from old and new titles', () => {
+    expect('[WW] Modular Elements - Hub'.replace(HUB_SUFFIX, '')).toBe('[WW] Modular Elements');
+    expect('[WW] Modular Elements — Hub'.replace(HUB_SUFFIX, '')).toBe('[WW] Modular Elements');
   });
 
   it('formats halves', () => {
@@ -64,7 +69,7 @@ describe('planTree', () => {
       'Not Pursued', 'Not Pursued · Online Invites', 'Not Pursued · Wedding Websites', 'Not Pursued · Address Book',
       'Unscheduled', 'Unscheduled · Wedding Websites',
       '2026 Roadmap Projects', "H1'26", "H1'26 · Online Invites", "H2'26", "H2'26 · Wedding Websites",
-      '[OI] Messaging Center — Hub', '[WW] Modular Elements — Hub', '[WW] Someday — Hub',
+      '[OI] Messaging Center - Hub', '[WW] Modular Elements - Hub', '[WW] Someday - Hub',
     ]));
     expect(titles).not.toContain("H2'26 · Online Invites");
     expect(titles).not.toContain('Unscheduled · Online Invites');
@@ -85,7 +90,7 @@ describe('planTree', () => {
     });
     expect(nodes.find((n) => n.key === 'hub:oi-4')!.adoptPageId).toBe('4198498306');
     expect(nodes.find((n) => n.key === 'hub:off:IDEA-845')).toMatchObject({
-      title: '[OI] Guest Photos — Hub', parentKey: 'unscheduled:OI', offRoadmap: true, adoptPageId: '4226482184',
+      title: '[OI] Guest Photos - Hub', parentKey: 'unscheduled:OI', offRoadmap: true, adoptPageId: '4226482184',
     });
   });
 
@@ -103,7 +108,7 @@ describe('findTitleCollisions', () => {
     });
     const existing = [
       { id: '3664740359', title: "H1'26" },
-      { id: '42', title: '[OI] Messaging Center — Hub' },
+      { id: '42', title: '[OI] Messaging Center - Hub' },
       { id: '7', title: 'Something else' },
     ];
     expect(findTitleCollisions(nodes, existing)).toEqual([

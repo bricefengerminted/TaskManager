@@ -36,9 +36,12 @@ export function halfTitle(half: string): string {
   return `H${m[2]}'${m[1].slice(2)}`;
 }
 
-export const hubTitle = (prefix: string, name: string) => `[${prefix}] ${displayName(name, prefix)} — Hub`;
+/** Separator in generated page titles. Older pages use " — "; HUB_SUFFIX and classifyTitle accept both. */
+export const TITLE_SEP = ' - ';
+export const HUB_SUFFIX = / [—-] Hub$/;
+export const hubTitle = (prefix: string, name: string) => `[${prefix}] ${displayName(name, prefix)}${TITLE_SEP}Hub`;
 export const docPageTitle = (prefix: string, name: string, key: DocKey) =>
-  `[${prefix}] ${displayName(name, prefix)} — ${docRow(key).pageTitle}`;
+  `[${prefix}] ${displayName(name, prefix)}${TITLE_SEP}${docRow(key).pageTitle}`;
 
 export type NodeKind =
   | 'root' | 'proposals' | 'team_proposals' | 'not_pursued' | 'team_not_pursued'

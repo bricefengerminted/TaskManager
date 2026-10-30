@@ -68,7 +68,7 @@ export interface DocRow {
   key: DocKey;
   phase: DocPhase | null;
   label: string;
-  /** Confluence child page title suffix: "[OI] <name> — <pageTitle>". */
+  /** Confluence child page title suffix: "[OI] <name> - <pageTitle>". */
   pageTitle: string;
   required: (c: DocContext) => boolean;
   due: DueRule;

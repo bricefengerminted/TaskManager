@@ -92,10 +92,10 @@ describe('buildMigrationList', () => {
     });
     expect(rows.map((r) => r.n)).toEqual(rows.map((_, i) => i + 1));
     expect(rows).toEqual(expect.arrayContaining([
-      expect.objectContaining({ action: 'move_rename', pageId: '3748462617', newTitle: '[OI] Messaging Center — Brief/PRD', newParentKey: 'hub:oi-4' }),
+      expect.objectContaining({ action: 'move_rename', pageId: '3748462617', newTitle: '[OI] Messaging Center - Brief/PRD', newParentKey: 'hub:oi-4' }),
       expect.objectContaining({ action: 'leave', pageId: '4286087221' }),
-      expect.objectContaining({ action: 'adopt_as_hub', pageId: '4198498306', newTitle: '[WW] Modular Elements — Hub', newParentKey: 'team_half:2026-H2:WW' }),
-      expect.objectContaining({ action: 'off_roadmap_hub', pageId: '4226482184', newTitle: '[OI] Guest Photos — Hub', newParentKey: 'unscheduled:OI' }),
+      expect.objectContaining({ action: 'adopt_as_hub', pageId: '4198498306', newTitle: '[WW] Modular Elements - Hub', newParentKey: 'team_half:2026-H2:WW' }),
+      expect.objectContaining({ action: 'off_roadmap_hub', pageId: '4226482184', newTitle: '[OI] Guest Photos - Hub', newParentKey: 'unscheduled:OI' }),
       expect.objectContaining({ action: 'rename_conflict', pageId: '3664740359', newTitle: "H1'26 (legacy)" }),
       expect.objectContaining({ action: 'banner', pageId: '111' }),
     ]));
@@ -117,7 +117,7 @@ describe('prd overrides', () => {
     });
     expect(rows[0]).toMatchObject({
       action: 'move_rename', pageId: '3965943809',
-      newTitle: '[WW] Registry Enhancements Phase 2 — Brief/PRD', newParentKey: 'hub:off:IDEA-845',
+      newTitle: '[WW] Registry Enhancements Phase 2 - Brief/PRD', newParentKey: 'hub:off:IDEA-845',
     });
     expect(rows[0].note).toMatch(/Suggested/);
   });

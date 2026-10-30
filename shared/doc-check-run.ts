@@ -8,7 +8,7 @@ import { classifyTitle } from './doc-evidence';
 import { checklistContent, defaultSettings, itemDocRows, statusContent, type HubItem, type HubSettings } from './confluence-hub';
 import { rollupContent, settingsContent, type RollupRow } from './confluence-rollup';
 import { confluencePageId, NEVER_LINK } from './confluence-migration';
-import { halfTitle } from './confluence-tree';
+import { halfTitle, HUB_SUFFIX } from './confluence-tree';
 import { LINK_DOC_KEYS, planRoadmapLinks, type LinkDocKey, type LinkFill, type RoadmapLinkName } from './roadmap-links';
 
 export interface TreePage { id: string; title: string; parentId: string | null; status: 'current' | 'draft' }
@@ -148,7 +148,7 @@ export function planDocCheck(inp: DocCheckInput): DocCheckOutput {
   const rollupRow = (hubId: string): RollupRow => {
     const rows = rowsForHub(hubId);
     return {
-      name: byId.get(hubId)!.title.replace(/ — Hub$/, ''),
+      name: byId.get(hubId)!.title.replace(HUB_SUFFIX, ''),
       hubUrl: `${inp.base}${hubId}`,
       stage: itemForHub(hubId)?.stage ?? projectForHub(hubId)?.roadmap_stage ?? null,
       cells: Object.fromEntries(rows.map((r) => [r.key, r.status])),
