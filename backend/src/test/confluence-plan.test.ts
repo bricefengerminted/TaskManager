@@ -58,4 +58,15 @@ describe('manifest stepping', () => {
     expect(seen).not.toContain('hub:ww-1');
     expect(seen).toContain('hub:oi-4');
   });
+  it('skips hubs covered by another hub', () => {
+    let m = emptyManifest(plan, 'c', '221937685');
+    m = { ...m, nodes: { ...m.nodes, 'hub:oi-4': { ...m.nodes['hub:oi-4'], coveredBy: 'hub:ww-1' } } };
+    const seen: string[] = [];
+    for (let n = nextNode(plan, m); n; n = nextNode(plan, m)) {
+      seen.push(n.key);
+      m = recordNode(m, n.key, { pageId: String(seen.length), status: 'draft', url: '' });
+    }
+    expect(seen).not.toContain('hub:oi-4');
+    expect(seen).toContain('hub:ww-1');
+  });
 });
