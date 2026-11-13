@@ -100,6 +100,8 @@ export interface ManifestEntry {
   pageId: string | null;
   status: 'draft' | 'current' | null;
   url: string | null;
+  /** Manifest key of the hub that holds this item's docs. The item gets no page of its own. */
+  coveredBy?: string;
 }
 export interface Manifest {
   cloudId: string;
@@ -116,10 +118,10 @@ export function emptyManifest(plan: Plan, cloudId: string, spaceId: string): Man
   };
 }
 
-/** Next page to create: no page id yet, parent already exists. Adopted hubs are moved, never created. */
+/** Next page to create: no page id yet, parent already exists. Adopted and covered hubs are never created. */
 export function nextNode(plan: Plan, m: Manifest): PlannedNode | null {
   for (const n of plan.nodes) {
-    if (n.adoptPageId) continue;
+    if (n.adoptPageId || m.nodes[n.key]?.coveredBy) continue;
     if (m.nodes[n.key]?.pageId) continue;
     if (n.parentKey && !m.nodes[n.parentKey]?.pageId) continue;
     return n;

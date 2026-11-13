@@ -185,9 +185,10 @@
     },
     "hub:id-1786476177551-5iffsnc3g": {
       "title": "[OI] Guest List Iteration — Hub",
-      "pageId": "4646666251",
-      "status": "current",
-      "url": "https://minted.atlassian.net/wiki/spaces/PM/pages/4646666251"
+      "pageId": null,
+      "status": null,
+      "url": null,
+      "coveredBy": "hub:id-1786469875691-by44zvfds"
     },
     "hub:id-1789676640909-auvu4x7d6": {
       "title": "[OI] Guest RSVP Iteration — Hub",
